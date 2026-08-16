@@ -37,10 +37,12 @@ on an image library.
 Each of these was measured, and each is the reason a step in `build-icons.py`
 exists.
 
-**The background needs flood-filling, not thresholding.** The mark sits on
-cream, but the glyph's counter *contains* the same cream. A global
-cream-to-alpha pass punches a hole through the counter; filling inward from
-the four corners stops at the outlines and leaves the enclosed cream intact.
+**The background needs two passes.** A corner flood-fill clears everything
+connected to the outside; a colour pass then clears the cream enclosed inside
+the artwork (the glyph's counter), so the transparent exports are transparent
+everywhere except the glyph and the brackets — no cream patches on dark
+surfaces. The tiled icons composite the same cut-out over a cream tile, where
+the open counter naturally shows the tile.
 
 **Small sizes need no crop.** The mark is three chunky shapes — two thick
 brackets and one bold glyph — and all three survive the 16px favicon.
