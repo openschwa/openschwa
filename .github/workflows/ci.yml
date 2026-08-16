@@ -1,0 +1,48 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  engine:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: engine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      # Deliberately without `--extra ml`: no torch, no 1.3 GB model download.
+      # That exercises the degraded path — the engine must still start, serve
+      # exercises, measure audio and F0, and return a schema-valid "retry".
+      # Alignment maths is covered by tests/test_ctc.py, which is pure numpy,
+      # and the phone mapping by tests/test_phone_set.py against the committed
+      # vocabulary snapshot.
+      - run: uv sync
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy
+      # Includes the schema-drift gate (tests/test_schema_export.py) and
+      # content-pack validation (tests/test_content_pack.py).
+      - run: uv run pytest -q
+
+  ui:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - run: npm ci
+      # Drift gate for the generated TypeScript contract types.
+      - run: npm run gen:types && git diff --exit-code src/lib/api/types.gen.ts
+      - run: npm run check
+      - run: npm test
+      - run: npm run build

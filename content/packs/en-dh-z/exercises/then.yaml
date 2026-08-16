@@ -1,0 +1,15 @@
+id: en.seg.dh-z.then
+type: minimal_pair
+title: "*then* vs *Zen*: the /ð/ half"
+lang: en
+text: "then"
+ipa: "ðɛn"
+phones:
+  - ph: "ð"
+    focus: true
+    confusions: ["z", "d", "v"]
+  - ph: "ɛ"
+  - ph: "n"
+pair_with: en.seg.dh-z.zen
+reference_audio: audio/then-ref.wav
+learner_notes: "If it sounds like *Zen*, the tongue tip is behind the teeth instead of touching them."

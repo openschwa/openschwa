@@ -1,0 +1,72 @@
+/* Theme tokens.
+ *
+ * Both schemes are defined rather than assuming a light page: with only a text
+ * colour set, a viewer in dark mode gets dark-on-dark and the drill is
+ * unreadable. Components reference these variables and never hard-code a
+ * colour, so the two schemes cannot drift apart.
+ *
+ * The spectrogram is deliberately exempt — viridis is a data encoding, not
+ * decoration, and inverting it would change what the picture means. */
+:root {
+  color-scheme: light dark;
+
+  --bg: #ffffff;
+  --fg: #0f172a;
+  --muted: #475569;
+  --faint: #64748b;
+  --border: #cbd5e1;
+  --border-soft: #e2e8f0;
+  --surface: #f8fafc;
+  --surface-strong: #e2e8f0;
+
+  --accent: #1e293b;
+  --accent-fg: #ffffff;
+  --focus: #b45309;
+  --ok: #15803d;
+  --warn: #b45309;
+  --error: #b00020;
+
+  --pitch-line: #2563eb;
+  --pitch-grid: #cbd5e1;
+
+  --feedback-error-bg: #fef2f2;
+  --feedback-warn-bg: #fffbeb;
+  --feedback-praise-bg: #f0fdf4;
+  --highlight: #fde68a;
+  --highlight-fg: #0f172a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --fg: #e2e8f0;
+    --muted: #94a3b8;
+    --faint: #94a3b8;
+    --border: #334155;
+    --border-soft: #1e293b;
+    --surface: #1e293b;
+    --surface-strong: #334155;
+
+    --accent: #e2e8f0;
+    --accent-fg: #0f172a;
+    --focus: #fbbf24;
+    --ok: #4ade80;
+    --warn: #fbbf24;
+    --error: #f87171;
+
+    --pitch-line: #60a5fa;
+    --pitch-grid: #475569;
+
+    --feedback-error-bg: #3f1d1d;
+    --feedback-warn-bg: #3b2f11;
+    --feedback-praise-bg: #14321f;
+    --highlight: #a16207;
+    --highlight-fg: #fef3c7;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+}

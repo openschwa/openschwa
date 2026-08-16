@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openschwa.ru/schemas/exercise_catalog.v1.schema.json",
+  "$defs": {
+    "ExerciseSummary": {
+      "additionalProperties": false,
+      "description": "Enough to render a picker without fetching every exercise.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "pack_id": {
+          "title": "Pack Id",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "minimal_pair",
+            "word",
+            "sentence",
+            "intonation"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "ipa": {
+          "title": "Ipa",
+          "type": "string"
+        },
+        "focus_phone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The drilled phone; null for intonation exercises.",
+          "title": "Focus Phone"
+        }
+      },
+      "required": [
+        "id",
+        "pack_id",
+        "type",
+        "title",
+        "text",
+        "ipa"
+      ],
+      "title": "ExerciseSummary",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "exercises": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ExerciseSummary"
+      },
+      "title": "Exercises",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version"
+  ],
+  "title": "ExerciseCatalog",
+  "type": "object"
+}

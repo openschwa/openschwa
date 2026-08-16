@@ -1,0 +1,96 @@
+[project]
+name = "openschwa-engine"
+version = "0.1.0"
+description = "OpenSchwa analysis engine: pronunciation feedback over a local HTTP API"
+readme = "README.md"
+license = "AGPL-3.0-or-later"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+    "pydantic>=2.8",
+    "pydantic-settings>=2.4",
+    "python-multipart>=0.0.9",
+    "numpy>=1.26",
+    "platformdirs>=4.2",
+    "pyyaml>=6.0",
+    "jsonschema>=4.22",
+    # Small binary wheels the M0 pipeline always needs: resampling and F0.
+    "soxr>=0.5",
+    "praat-parselmouth>=0.4.3",
+]
+
+[project.urls]
+Homepage = "https://openschwa.ru"
+Repository = "https://github.com/openschwa/openschwa"
+Issues = "https://github.com/openschwa/openschwa/issues"
+
+# The acoustic model and its runtime — ~800 MB installed, on top of a 1.2 GB
+# weights download. Kept optional so contract work, content authoring, and CI
+# stay fast: without it the engine still serves exercises, still measures audio
+# and F0, and returns a schema-valid "retry" instead of a verdict.
+# Install with `uv sync --extra ml`.
+[project.optional-dependencies]
+ml = [
+    "torch>=2.4",
+    "transformers>=4.44",
+    "huggingface_hub>=0.24",
+    "tqdm>=4.66",
+]
+
+[project.scripts]
+openschwa-engine = "openschwa_engine.server:main"
+# Desktop entry: same engine, plus the built UI and a browser window.
+openschwa = "openschwa_engine.app:main"
+
+[dependency-groups]
+# Build tooling for the desktop bundle. Separate from `dev` so CI never
+# installs it (see engine/packaging/README.md).
+package = [
+    "pyinstaller>=6.10",
+]
+dev = [
+    "ruff>=0.6",
+    "pytest>=8.2",
+    "mypy>=1.11",
+    "httpx2>=0.1",
+    "types-jsonschema>=4.22",
+    "types-PyYAML>=6.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/openschwa_engine"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src/openschwa_engine"]
+
+# Third-party packages without type information. torch/transformers are only
+# present with the `ml` extra, so they must not be a hard requirement for a
+# type check either.
+[[tool.mypy.overrides]]
+module = ["soxr.*", "parselmouth.*", "torch.*", "transformers.*", "huggingface_hub.*", "tqdm.*"]
+ignore_missing_imports = true
+
+# The acoustic wrapper is untyped at its boundary by necessity: it talks to
+# torch and transformers, whose signatures are not available without the extra.
+[[tool.mypy.overrides]]
+module = ["openschwa_engine.alignment.acoustic", "openschwa_engine.models.registry"]
+disallow_any_expr = false
+disallow_untyped_calls = false
+warn_return_any = false

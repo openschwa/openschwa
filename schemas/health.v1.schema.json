@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openschwa.ru/schemas/health.v1.schema.json",
+  "$defs": {
+    "ModelInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "ready",
+            "missing",
+            "downloading"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "repo_id": {
+          "title": "Repo Id",
+          "type": "string"
+        },
+        "revision": {
+          "description": "Pinned upstream commit \u2014 never a branch name.",
+          "title": "Revision",
+          "type": "string"
+        },
+        "download_bytes": {
+          "title": "Download Bytes",
+          "type": "integer"
+        },
+        "license": {
+          "title": "License",
+          "type": "string"
+        },
+        "note": {
+          "title": "Note",
+          "type": "string"
+        },
+        "runtime_available": {
+          "description": "False when the engine's `ml` extra is not installed; weights alone are not enough.",
+          "title": "Runtime Available",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "state",
+        "repo_id",
+        "revision",
+        "download_bytes",
+        "license",
+        "note",
+        "runtime_available"
+      ],
+      "title": "ModelInfo",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "status": {
+      "const": "ok",
+      "title": "Status",
+      "type": "string"
+    },
+    "engine_version": {
+      "title": "Engine Version",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "alignment_model": {
+      "title": "Alignment Model",
+      "type": "string"
+    },
+    "analysis_available": {
+      "title": "Analysis Available",
+      "type": "boolean"
+    },
+    "models": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ModelInfo"
+      },
+      "title": "Models",
+      "type": "array"
+    }
+  },
+  "required": [
+    "status",
+    "engine_version",
+    "schema_version",
+    "alignment_model",
+    "analysis_available"
+  ],
+  "title": "HealthResponse",
+  "type": "object"
+}

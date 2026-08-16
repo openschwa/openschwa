@@ -1,0 +1,781 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openschwa.ru/schemas/analysis_result.v1.schema.json",
+  "$defs": {
+    "Alignment": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "ok",
+            "low_confidence",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "words": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Word"
+          },
+          "title": "Words",
+          "type": "array"
+        },
+        "phones": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Phone"
+          },
+          "title": "Phones",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status",
+        "confidence"
+      ],
+      "title": "Alignment",
+      "type": "object"
+    },
+    "Anchor": {
+      "additionalProperties": false,
+      "properties": {
+        "phone_index": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Phone Index"
+        },
+        "interval_s": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval S"
+        }
+      },
+      "title": "Anchor",
+      "type": "object"
+    },
+    "Annotation": {
+      "additionalProperties": false,
+      "description": "Acoustic event for spectrogram overlay. New `type`s may be added in\nminor schema versions; clients must ignore types they don't know.",
+      "properties": {
+        "type": {
+          "enum": [
+            "vot",
+            "voicing",
+            "duration",
+            "formants"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "phone_index": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Phone Index"
+        },
+        "interval_s": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Interval S",
+          "type": "array"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "unit": {
+          "title": "Unit",
+          "type": "string"
+        },
+        "expected_range": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Range"
+        },
+        "verdict": {
+          "anyOf": [
+            {
+              "enum": [
+                "in_range",
+                "outside_range"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Verdict"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "f1": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "formants only",
+          "title": "F1"
+        },
+        "f2": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "formants only",
+          "title": "F2"
+        }
+      },
+      "required": [
+        "type",
+        "interval_s",
+        "unit",
+        "confidence"
+      ],
+      "title": "Annotation",
+      "type": "object"
+    },
+    "AudioInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "duration_s": {
+          "title": "Duration S",
+          "type": "number"
+        },
+        "sample_rate": {
+          "title": "Sample Rate",
+          "type": "integer"
+        },
+        "speech_interval_s": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Post-VAD speech region; null when no speech was detected.",
+          "title": "Speech Interval S"
+        },
+        "quality": {
+          "$ref": "#/$defs/AudioQuality"
+        }
+      },
+      "required": [
+        "duration_s",
+        "sample_rate",
+        "quality"
+      ],
+      "title": "AudioInfo",
+      "type": "object"
+    },
+    "AudioQuality": {
+      "additionalProperties": false,
+      "properties": {
+        "clipping": {
+          "title": "Clipping",
+          "type": "boolean"
+        },
+        "snr_db_est": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Snr Db Est"
+        },
+        "too_quiet": {
+          "description": "The input is effectively dead \u2014 no usable signal at all. NOT merely a low recording level: absolute level says nothing about whether speech can be analysed, so a quiet-but-clean recording is analysed normally and the UI advises from `speech_level_dbfs` instead of refusing.",
+          "title": "Too Quiet",
+          "type": "boolean"
+        },
+        "speech_level_dbfs": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "RMS of the detected speech region, dB relative to full scale.",
+          "title": "Speech Level Dbfs"
+        },
+        "peak_dbfs": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Peak sample level of the whole recording, dBFS.",
+          "title": "Peak Dbfs"
+        }
+      },
+      "required": [
+        "clipping",
+        "too_quiet"
+      ],
+      "title": "AudioQuality",
+      "type": "object"
+    },
+    "ContrastResult": {
+      "additionalProperties": false,
+      "description": "Closed-set discrimination for one focus phone of the exercise.",
+      "properties": {
+        "phone_index": {
+          "title": "Phone Index",
+          "type": "integer"
+        },
+        "target": {
+          "title": "Target",
+          "type": "string"
+        },
+        "confusion_set": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Confusion Set",
+          "type": "array"
+        },
+        "posteriors": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "description": "Posterior mass renormalized over {target} \u222a confusion_set.",
+          "title": "Posteriors",
+          "type": "object"
+        },
+        "verdict": {
+          "enum": [
+            "on_target",
+            "substituted",
+            "uncertain"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        },
+        "detected": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The confusion phone heard; set only when verdict=substituted.",
+          "title": "Detected"
+        },
+        "confidence": {
+          "description": "Calibrated (Platt-scaled), not raw margin.",
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "phone_index",
+        "target",
+        "confusion_set",
+        "posteriors",
+        "verdict",
+        "confidence"
+      ],
+      "title": "ContrastResult",
+      "type": "object"
+    },
+    "F0Track": {
+      "additionalProperties": false,
+      "properties": {
+        "hop_s": {
+          "title": "Hop S",
+          "type": "number"
+        },
+        "start_s": {
+          "title": "Start S",
+          "type": "number"
+        },
+        "semitones": {
+          "description": "F0 in semitones relative to the speaker's median; null = unvoiced frame.",
+          "items": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Semitones",
+          "type": "array"
+        },
+        "median_hz": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Median Hz"
+        }
+      },
+      "required": [
+        "hop_s",
+        "start_s",
+        "semitones"
+      ],
+      "title": "F0Track",
+      "type": "object"
+    },
+    "FeedbackItem": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Open enum, grows per milestone. Current: segmental_substitution, retry. Planned: nuclear_tone_mismatch (M2), vot_out_of_range (M3).",
+          "title": "Kind",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "error",
+            "warning",
+            "praise"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "message_key": {
+          "description": "Stable key for future i18n.",
+          "title": "Message Key",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "anchor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Anchor"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What the UI highlights."
+        },
+        "evidence": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "Pointers into contrasts/annotations/prosody, e.g. {'contrast_index': 0}.",
+          "title": "Evidence",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "severity",
+        "confidence",
+        "message_key",
+        "message"
+      ],
+      "title": "FeedbackItem",
+      "type": "object"
+    },
+    "NuclearTone": {
+      "additionalProperties": false,
+      "properties": {
+        "detected": {
+          "enum": [
+            "fall",
+            "rise",
+            "fall_rise",
+            "level"
+          ],
+          "title": "Detected",
+          "type": "string"
+        },
+        "expected": {
+          "anyOf": [
+            {
+              "enum": [
+                "fall",
+                "rise",
+                "fall_rise",
+                "level"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected"
+        },
+        "match": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Match"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "detected",
+        "confidence"
+      ],
+      "title": "NuclearTone",
+      "type": "object"
+    },
+    "Phone": {
+      "additionalProperties": false,
+      "properties": {
+        "index": {
+          "title": "Index",
+          "type": "integer"
+        },
+        "label": {
+          "description": "Canonical IPA label from the engine's internal inventory.",
+          "title": "Label",
+          "type": "string"
+        },
+        "start_s": {
+          "title": "Start S",
+          "type": "number"
+        },
+        "end_s": {
+          "title": "End S",
+          "type": "number"
+        },
+        "gop": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Raw goodness-of-pronunciation (log-posterior based).",
+          "title": "Gop"
+        },
+        "score": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "GOP mapped to [0,1] via committed calibration.",
+          "title": "Score"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "index",
+        "label",
+        "start_s",
+        "end_s",
+        "confidence"
+      ],
+      "title": "Phone",
+      "type": "object"
+    },
+    "Prosody": {
+      "additionalProperties": false,
+      "properties": {
+        "f0": {
+          "$ref": "#/$defs/F0Track"
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/F0Track"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Teacher-reference contour, precomputed at pack load."
+        },
+        "dtw_distance": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Per-frame-normalized DTW over voiced regions.",
+          "title": "Dtw Distance"
+        },
+        "nuclear_tone": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NuclearTone"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "f0"
+      ],
+      "title": "Prosody",
+      "type": "object"
+    },
+    "Word": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "start_s": {
+          "title": "Start S",
+          "type": "number"
+        },
+        "end_s": {
+          "title": "End S",
+          "type": "number"
+        },
+        "phone_indices": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Phone Indices",
+          "type": "array"
+        }
+      },
+      "required": [
+        "text",
+        "start_s",
+        "end_s",
+        "phone_indices"
+      ],
+      "title": "Word",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "engine_version": {
+      "title": "Engine Version",
+      "type": "string"
+    },
+    "exercise_id": {
+      "title": "Exercise Id",
+      "type": "string"
+    },
+    "audio": {
+      "$ref": "#/$defs/AudioInfo"
+    },
+    "alignment": {
+      "$ref": "#/$defs/Alignment"
+    },
+    "contrasts": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ContrastResult"
+      },
+      "title": "Contrasts",
+      "type": "array"
+    },
+    "prosody": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Prosody"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "annotations": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Annotation"
+      },
+      "title": "Annotations",
+      "type": "array"
+    },
+    "feedback": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/FeedbackItem"
+      },
+      "title": "Feedback",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "engine_version",
+    "exercise_id",
+    "audio",
+    "alignment"
+  ],
+  "title": "AnalysisResult",
+  "type": "object"
+}

@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openschwa.ru/schemas/exercise_detail.v1.schema.json",
+  "$defs": {
+    "ExercisePhone": {
+      "additionalProperties": false,
+      "properties": {
+        "index": {
+          "description": "Position in the target phone sequence; matches Phone.index.",
+          "title": "Index",
+          "type": "integer"
+        },
+        "ph": {
+          "description": "Canonical IPA label from the engine's internal inventory.",
+          "title": "Ph",
+          "type": "string"
+        },
+        "focus": {
+          "default": false,
+          "title": "Focus",
+          "type": "boolean"
+        },
+        "confusions": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Confusions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "index",
+        "ph"
+      ],
+      "title": "ExercisePhone",
+      "type": "object"
+    },
+    "ExerciseProsody": {
+      "additionalProperties": false,
+      "properties": {
+        "nuclear_syllable_index": {
+          "title": "Nuclear Syllable Index",
+          "type": "integer"
+        },
+        "expected_tone": {
+          "enum": [
+            "fall",
+            "rise",
+            "fall_rise",
+            "level"
+          ],
+          "title": "Expected Tone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "nuclear_syllable_index",
+        "expected_tone"
+      ],
+      "title": "ExerciseProsody",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Everything the UI needs to present a drill before recording.",
+  "properties": {
+    "schema_version": {
+      "const": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "pack_id": {
+      "title": "Pack Id",
+      "type": "string"
+    },
+    "type": {
+      "enum": [
+        "minimal_pair",
+        "word",
+        "sentence",
+        "intonation"
+      ],
+      "title": "Type",
+      "type": "string"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "lang": {
+      "title": "Lang",
+      "type": "string"
+    },
+    "text": {
+      "title": "Text",
+      "type": "string"
+    },
+    "ipa": {
+      "title": "Ipa",
+      "type": "string"
+    },
+    "phones": {
+      "items": {
+        "$ref": "#/$defs/ExercisePhone"
+      },
+      "title": "Phones",
+      "type": "array"
+    },
+    "pair_with": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Pair With"
+    },
+    "prosody": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ExerciseProsody"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "learner_notes": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Learner Notes"
+    },
+    "has_reference_audio": {
+      "description": "False when the pack declares reference audio that has not been recorded yet \u2014 the UI hides playback rather than offering a broken control.",
+      "title": "Has Reference Audio",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "pack_id",
+    "type",
+    "title",
+    "lang",
+    "text",
+    "ipa",
+    "phones",
+    "has_reference_audio"
+  ],
+  "title": "ExerciseDetail",
+  "type": "object"
+}

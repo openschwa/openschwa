@@ -1,0 +1,8 @@
+# First exercise pack: the /ð/ → /z/ substitution ("zis" for "this").
+# Reference audio: to be recorded by the pack author. Its licence is still an
+# open question — see docs/architecture.md §9. Paths below are placeholders.
+id: en-dh-z
+title: "th as in this: /ð/ vs /z/"
+language: en
+author: OpenSchwa
+audio_license: "CC BY-SA 4.0 (proposed — see docs/architecture.md §9)"

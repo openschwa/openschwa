@@ -1,0 +1,15 @@
+id: en.seg.dh-z.zen
+type: minimal_pair
+title: "*then* vs *Zen*: the /z/ half"
+lang: en
+text: "Zen"
+ipa: "zɛn"
+phones:
+  - ph: "z"
+    focus: true
+    confusions: ["ð", "s"]
+  - ph: "ɛ"
+  - ph: "n"
+pair_with: en.seg.dh-z.then
+reference_audio: audio/zen-ref.wav
+learner_notes: "Here the buzz sits just behind the teeth — the tongue tip touches nothing."

@@ -1,0 +1,14 @@
+id: en.seg.dh-z.this
+type: word
+title: "'th' in *this*"
+lang: en
+text: "this"
+ipa: "ðɪs"
+phones:
+  - ph: "ð"
+    focus: true
+    confusions: ["z", "d", "v"]
+  - ph: "ɪ"
+  - ph: "s"
+reference_audio: audio/this-ref.wav
+learner_notes: "Tongue tip lightly between the teeth; keep the voice on."
