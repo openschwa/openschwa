@@ -39,11 +39,11 @@ class TrainOptions:
     data_dir: Path  # the export dir: labels.csv + audio/
     base_model_dir: Path  # assembled charsiu dir (config/preprocessor/weights/vocab)
     out_dir: Path
-    epochs: int = 6
-    freeze_epochs: int = 2
+    epochs: int = 8
+    freeze_epochs: int = 4
     batch_size: int = 32
     lr_head: float = 5e-4
-    lr_full: float = 2e-5
+    lr_full: float = 1e-5
     seed: int = 42
     max_steps: int | None = None  # smoke runs
     max_segment_s: float = 0.5  # pad/truncate ceiling
@@ -164,6 +164,38 @@ def val_metrics(
     return accuracy, float(np.mean(f1s)), per_class
 
 
+def balanced_batches(
+    rows: list[dict[str, object]], batch_size: int, rng: random.Random
+) -> list[list[dict[str, object]]]:
+    """Per-class balanced batches.
+
+    Round-robin from shuffled per-class pools (with replacement): every batch
+    carries roughly equal counts of each phone. Without this, the biggest
+    class (d: ~28% of rows) is the shortest path to a low loss, and the head
+    collapses to predicting it - exactly what the v1 CPU run did.
+    """
+    by_class: dict[str, list[dict[str, object]]] = {}
+    for row in rows:
+        by_class.setdefault(str(row["label"]), []).append(row)
+    pools = {label: pool[:] for label, pool in by_class.items()}
+    for pool in pools.values():
+        rng.shuffle(pool)
+    per_class = max(1, batch_size // len(ALPHABET))
+    batches: list[list[dict[str, object]]] = []
+    for _ in range((len(rows) + batch_size - 1) // batch_size):
+        batch: list[dict[str, object]] = []
+        for label in ALPHABET:
+            pool = pools[label]
+            if len(pool) < per_class:  # refill with replacement
+                pool.extend(by_class[label])
+                rng.shuffle(pool)
+            batch.extend(pool[:per_class])
+            del pool[:per_class]
+        rng.shuffle(batch)
+        batches.append(batch[:batch_size])
+    return batches
+
+
 def train(options: TrainOptions) -> dict[str, object]:
     """Run (or resume) the fine-tune; returns the final metrics summary."""
     import torch  # noqa: PLC0415 - ml extra
@@ -206,12 +238,9 @@ def train(options: TrainOptions) -> dict[str, object]:
         )
         model.train()
         rng = random.Random(options.seed * 1000 + epoch)
-        shuffled = train_rows[:]
-        rng.shuffle(shuffled)
         total_loss = 0.0
         processed = 0
-        for start in range(0, len(shuffled), options.batch_size):
-            chunk = shuffled[start : start + options.batch_size]
+        for chunk in balanced_batches(train_rows, options.batch_size, rng):
             batch = [
                 (read_segment(options.data_dir, row), VOCAB[str(row["label"])]) for row in chunk
             ]
@@ -301,9 +330,11 @@ def main() -> None:
     parser.add_argument("--data", required=True, help="export dir with labels.csv + audio/")
     parser.add_argument("--base-model", required=True, help="assembled charsiu model dir")
     parser.add_argument("--out", required=True, help="checkpoints + final model dir")
-    parser.add_argument("--epochs", type=int, default=6)
-    parser.add_argument("--freeze-epochs", type=int, default=2)
+    parser.add_argument("--epochs", type=int, default=8)
+    parser.add_argument("--freeze-epochs", type=int, default=4)
     parser.add_argument("--batch-size", type=int, default=32)
+    parser.add_argument("--lr-head", type=float, default=5e-4)
+    parser.add_argument("--lr-full", type=float, default=1e-5)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--max-steps", type=int, default=None, help="smoke runs")
     args = parser.parse_args()
@@ -316,6 +347,8 @@ def main() -> None:
             epochs=args.epochs,
             freeze_epochs=args.freeze_epochs,
             batch_size=args.batch_size,
+            lr_head=args.lr_head,
+            lr_full=args.lr_full,
             seed=args.seed,
             max_steps=args.max_steps,
         )

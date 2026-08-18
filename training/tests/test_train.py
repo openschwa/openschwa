@@ -12,7 +12,20 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
-from openschwa_training.train import VOCAB, TrainOptions, train  # noqa: E402
+from openschwa_training.train import VOCAB, TrainOptions, balanced_batches, train  # noqa: E402
+
+
+def test_balanced_batches_carry_all_four_classes():
+    import random as random_module
+
+    rows = [
+        {"label": ["ð", "z", "d", "v"][index % 4], "filename": f"u{index}.wav"}
+        for index in range(12)
+    ]
+    batches = balanced_batches(rows, 8, random_module.Random(1))
+    assert len(batches) == 2
+    for batch in batches:
+        assert {row["label"] for row in batch} == {"ð", "z", "d", "v"}
 
 
 def tiny_base(tmp_path: Path) -> Path:
