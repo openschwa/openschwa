@@ -4,17 +4,22 @@ Quality checks exist to protect the confidence gate: a clipped or near-silent
 recording produces confident-looking garbage downstream, so it is caught here
 and turned into a "retry" rather than a verdict.
 
-VAD is energy-based. `docs/architecture.md` names silero-vad with an energy
-fallback; for M0's scripted single-word drills recorded deliberately, the energy
-path is sufficient and costs no extra model download. Swapping in silero is an
-M1 change behind `detect_speech`.
+VAD sits behind detect_speech. M1 runs silero-vad (the neural detector) when
+the ml extra is installed and its model is cached, and falls back to the
+energy-hysteresis detector everywhere else - a degraded engine must still trim
+speech. The energy path matters on its own: it is what keeps CI, packaged
+builds without torch, and first-run-before-download working.
 """
 
+import logging
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
 import soxr
+
+log = logging.getLogger(__name__)
 
 MODEL_SAMPLE_RATE = 16_000
 
@@ -132,15 +137,10 @@ def _frame_rms_db(samples: npt.NDArray[np.float32], sample_rate: int) -> npt.NDA
     return 20.0 * np.log10(np.maximum(rms, 1e-10))
 
 
-def detect_speech(
+def _energy_interval(
     samples: npt.NDArray[np.float32], sample_rate: int
 ) -> tuple[tuple[float, float] | None, float | None]:
-    """Return ((start_s, end_s) or None, estimated SNR in dB or None).
-
-    The interval spans the first to the last speech frame — interior pauses are
-    kept, because a drill utterance is scored as one unit and dropping internal
-    silence would corrupt the phone timeline.
-    """
+    """The energy-hysteresis detector: (interval, snr) or (None, snr)."""
     db = _frame_rms_db(samples, sample_rate)
     if db.size == 0:
         return None, None
@@ -179,6 +179,91 @@ def detect_speech(
     return (round(start_s, 4), round(end_s, 4)), snr
 
 
+_silero_runtime = None
+_silero_failed = False
+
+
+def _silero_model_or_none() -> tuple[Any, Any, Any] | None:
+    """The cached silero runtime (model, get_speech_timestamps, torch), or None.
+
+    Loaded once per process; every failure disables the path for the process's
+    lifetime, because retrying a broken download per analysis would add a
+    network timeout to every recording.
+    """
+    global _silero_runtime, _silero_failed
+    if _silero_failed:
+        return None
+    if _silero_runtime is not None:
+        return _silero_runtime
+    try:
+        import torch  # noqa: PLC0415 - ml extra
+        from silero_vad import (  # noqa: PLC0415 - ml extra
+            get_speech_timestamps,
+            load_silero_vad,
+        )
+    except ImportError:
+        _silero_failed = True
+        return None
+    try:
+        # silero_vad ships no type information (mypy override in pyproject).
+        model = load_silero_vad()
+        _silero_runtime = (model, get_speech_timestamps, torch)
+        return _silero_runtime
+    except Exception as exc:  # noqa: BLE001 - degrade, never crash an analysis
+        _silero_failed = True
+        log.warning("silero VAD unavailable (%s) - falling back to the energy detector", exc)
+        return None
+
+
+def _silero_interval(samples_16k: npt.NDArray[np.float32]) -> tuple[float, float] | None:
+    """Silero's first-to-last speech span, in seconds."""
+    runtime = _silero_model_or_none()
+    if runtime is None:
+        return None
+    model, get_speech_timestamps, torch = runtime
+    try:
+        audio = torch.from_numpy(np.ascontiguousarray(samples_16k)).float()
+        chunks = get_speech_timestamps(audio, model, return_seconds=True)
+        if not chunks:
+            return None
+        return float(chunks[0]["start"]), float(chunks[-1]["end"])
+    except Exception as exc:  # noqa: BLE001 - the energy path still works
+        _silero_failed = True
+        log.warning("silero VAD failed on this input (%s) - falling back to energy", exc)
+        return None
+
+
+def detect_speech(
+    samples: npt.NDArray[np.float32],
+    sample_rate: int,
+    vad_backend: str = "auto",
+) -> tuple[tuple[float, float] | None, float | None]:
+    """Return ((start_s, end_s) or None, estimated SNR in dB or None).
+
+    The interval spans the first to the last speech frame - interior pauses are
+    kept, because a drill utterance is scored as one unit and dropping internal
+    silence would corrupt the phone timeline.
+
+    vad_backend: "auto" (silero when it loads, else energy), "silero", or
+    "energy". The SNR estimate always comes from the energy analysis; silero
+    contributes only the interval.
+    """
+    energy_interval, snr = _energy_interval(samples, sample_rate)
+    if vad_backend == "energy":
+        return energy_interval, snr
+    if vad_backend in ("auto", "silero") and sample_rate == MODEL_SAMPLE_RATE:
+        silero = _silero_interval(samples)
+        if silero is not None:
+            start, end = silero
+            start = max(0.0, start - _PAD_S)
+            end = min(len(samples) / MODEL_SAMPLE_RATE, end + _PAD_S)
+            if end - start >= _MIN_SPEECH_S:
+                return (round(start, 4), round(end, 4)), snr
+    if vad_backend == "silero":
+        return None, snr  # asked for silero, got nothing: refuse rather than lie
+    return energy_interval, snr
+
+
 def assess_quality(
     samples: npt.NDArray[np.float32],
     speech: npt.NDArray[np.float32],
@@ -203,11 +288,13 @@ def assess_quality(
     )
 
 
-def prepare(samples: npt.NDArray[np.float32], sample_rate: int) -> PreparedAudio:
+def prepare(
+    samples: npt.NDArray[np.float32], sample_rate: int, vad_backend: str = "auto"
+) -> PreparedAudio:
     """Decoded audio -> model-rate signal, speech interval, and quality flags."""
     duration_s = len(samples) / sample_rate
     samples_16k = resample_to_model_rate(samples, sample_rate)
-    interval, snr = detect_speech(samples_16k, MODEL_SAMPLE_RATE)
+    interval, snr = detect_speech(samples_16k, MODEL_SAMPLE_RATE, vad_backend=vad_backend)
 
     speech = samples_16k
     if interval is not None:

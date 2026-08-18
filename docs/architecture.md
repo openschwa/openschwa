@@ -198,14 +198,27 @@ load. First pack: `en-dh-z` (/ð/ → /z/).
   belongs to the M1 bake-off below. M0 ships **no pronunciation verdicts**:
   `retry` is the only feedback kind, because no judgement type has cleared the
   shipping bar (§7) yet.
-- **M1 — one contrast done right (/ð/→/z/).** The shipping acoustic model is
-  deliberately still unchosen: a bake-off decides it here (wav2vec2 espeak,
-  charsiu phoneme models, torchaudio's alignment stack) on alignment sanity vs
-  L2-ARCTIC, contrast AUC, CPU latency, and download size, written up as an
-  eval report. Swapping a candidate in is a manifest entry plus a phone table,
-  never pipeline code — which is the whole reason the model sits behind one
-  wrapper module. Accept: **precision ≥ 0.90 at recall ≥ 0.4** held-out; retry
-  path verified; drill screen with anchored gated feedback.
+- **M1 — one contrast put to the bar (/ð/→/z/). ✅ Done, negative result.**
+  Everything the milestone promised *machinery*-wise shipped and is tested:
+  the eval harness over L2-ARCTIC + speechocean762 (adapters, checkpointed
+  runner, Platt fitting, precision-first threshold sweep with the per-L1
+  floor), closed-set contrast scoring with four aggregations (label-frame
+  mean, spike frame, frame vote, GOP), the calibration pipeline
+  (scoring/calibration.yaml, written only by the harness), silero VAD behind
+  detect_speech, the gated anchored segmental_substitution feedback path,
+  and the second bake-off candidate (charsiu CTC, manifest + phone table +
+  committed snapshots — swapping stayed configuration, never pipeline code).
+  **The bake-off verdict is negative**: over 6,678 labeled token runs per
+  model, neither candidate discriminates /ð/ vs {z,d,v} above chance —
+  held-out AUC 0.59 (espeak) / 0.58 (charsiu), best operating point precision
+  0.19 at recall 0.01, against the **precision ≥ 0.90 at recall ≥ 0.4**
+  accept criterion. Per policy no calibration was committed and no verdicts
+  ship; the engine stays retry-only. For the alignment job itself the
+  bake-off did decide: charsiu won alignment sanity (0.90 vs 0.82 mean
+  confidence on L2 speech), size (0.38 vs 1.26 GB), and latency (135 vs
+  357 ms median), and became the default aligner. Evidence:
+  eval/reports/m1-bakeoff-2026-08-18-*.md. **Accept criterion NOT met —
+  recorded, not waived.**
 - **M2 — intonation.** Contour overlay + DTW + nuclear tone
   ("please." / "please?" / "please!"). Accept: ≥ 90% fall-vs-rise on a
   purpose-recorded ~100-utterance set; octave errors < 2% of voiced frames.
@@ -232,7 +245,7 @@ all. It is the authority; everywhere else in this repo cites it.
 | Risk | Mitigation |
 |---|---|
 | Model accuracy on strong accents, child voices, laptop mics | Confidence gating; retry over wrong verdicts; per-L1 eval breakdown; closed-set scoring |
-| CTC peakiness undermines interval GOP | Named M1 bake-off criterion (spike-frame / temperature / alignment-score) |
+| CTC peakiness undermines interval GOP | Measured in the M1 bake-off: mean/spike/vote/GOP all sit near chance on /ð/ (AUC ≤ 0.59 held-out) — the bottleneck is the model's discrimination, not the aggregation; see eval/reports/ |
 | Phone-set mapping bugs silently corrupt verdicts | One canonical IPA inventory; per-model tables; round-trip tests |
 | PyInstaller + torch bundle (~0.5–1 GB, notarization, SmartScreen) | **Spike done**: 590 MB unsigned bundle works. Signing/notarization still M4; ONNX Runtime fallback still pre-planned if size bites |
 | Formant tracking unreliable (high F0 voices) | Supporting evidence only; own reliability gate; never the basis of a vowel verdict |
@@ -249,10 +262,10 @@ silent: every one either fails loud or is visible in the contract.
 
 | Gap | Why it was left | Closes in |
 |---|---|---|
-| **VAD is energy-based**, not silero | Scripted single-word drills recorded deliberately; costs no extra download. Uses hysteresis — a single threshold clipped the /s/ off "this", since voiceless fricatives sit 20–30 dB under the neighbouring vowel | M1, behind `audio.preprocess.detect_speech` |
-| **GOP's denominator spans the whole multilingual vocabulary** | The espeak model is multilingual, so Mandarin tone-tagged vowels compete with English phones and inflate GOP magnitude for reasons unrelated to pronunciation. Closed-set contrast scoring renormalises over {target} ∪ confusions and is the designed fix | M1 (contrast scoring + calibration) |
+| **VAD is energy-based**, not silero | Scripted single-word drills recorded deliberately; costs no extra download. Uses hysteresis — a single threshold clipped the /s/ off "this", since voiceless fricatives sit 20–30 dB under the neighbouring vowel | ✅ M1 — silero behind detect_speech, energy fallback for engines without the ml extra |
+| **GOP's denominator spans the whole multilingual vocabulary** | The espeak model is multilingual, so Mandarin tone-tagged vowels compete with English phones and inflate GOP magnitude for reasons unrelated to pronunciation. Closed-set contrast scoring renormalises over {target} ∪ confusions and is the designed fix | ✅ M1 — scoring/contrast.py renormalizes over {target} ∪ confusions (the bake-off showed the signal is still too weak — see eval/reports/) |
 | **`words[]` holds one word spanning the utterance** | The exercise schema carries a flat phone list with no word boundaries. Correct for the word and minimal-pair drills that exist; degenerate for sentences, of which there are none | Content-schema change, before sentence drills |
-| **`Phone.score` is always null** | Mapping GOP to a 0–1 "how good was it" needs committed calibration, which needs the eval harness. An uncalibrated number in that field would read as a verdict | M1 |
-| **Alignment thresholds are placeholders** | `min_alignment_confidence` / `low_alignment_confidence` in `config.py` gate "could this be analysed", not pronunciation. Real numbers come from eval | M1 `scoring/calibration.yaml` |
+| **`Phone.score` is always null** | Mapping GOP to a 0–1 "how good was it" needs committed calibration, which needs the eval harness. An uncalibrated number in that field would read as a verdict | ✅ M1 — calibrated when calibration.yaml exists; absent until a contrast passes the bar |
+| **Alignment thresholds are placeholders** | `min_alignment_confidence` / `low_alignment_confidence` in `config.py` gate "could this be analysed", not pronunciation. Real numbers come from eval | ✅ M1 — the values live in calibration.yaml; the negative bake-off kept the M0 placeholders (see eval/reports/) |
 | **No reference recordings exist** | The teacher audio is unrecorded, so packs declare paths that do not resolve. The loader warns rather than failing, `has_reference_audio` reports it, and the UI hides playback | When the pack author records them — and picks their licence, still an open question (proposal: **CC BY-SA 4.0**) |
-| **`?include_ungated=true` is not implemented** | There is nothing ungated to reveal yet — no contrasts are computed | M1, with the eval harness that needs it |
+| **`?include_ungated=true` is not implemented** | There is nothing ungated to reveal yet — no contrasts are computed | ✅ M1 — implemented; the harness consumes it on every token run |

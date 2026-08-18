@@ -19,12 +19,14 @@ models:
 dev:
     (cd engine && uv run openschwa-engine) & (cd ui && npm run dev) & wait
 
-# All tests and checks, both sides
+# All tests and checks, every side (engine, ui, eval)
 test:
-    cd engine && uv run pytest -q
-    cd engine && uv run ruff check . && uv run ruff format --check . && uv run mypy
+    cd engine && uv run python -m pytest -q
+    cd engine && uv run ruff check . && uv run ruff format --check . && uv run python -m mypy
     cd ui && npm run check
     cd ui && npm test
+    cd eval && uv run python -m pytest -q
+    cd eval && uv run ruff check . && uv run ruff format --check .
 
 # Regenerate the contract artifacts (JSON Schema + TS types) from the pydantic models
 schema:
@@ -46,6 +48,6 @@ package:
     @echo
     @echo "built dist/openschwa/openschwa — run it to launch the app"
 
-# Offline evaluation harness (lands in M1) — see eval/README.md
-eval:
-    @echo "eval harness lands in M1 — see eval/README.md"
+# Offline evaluation harness — see eval/README.md. Model download: `just models`.
+eval *ARGS:
+    cd eval && uv run python run_eval.py {{ARGS}}

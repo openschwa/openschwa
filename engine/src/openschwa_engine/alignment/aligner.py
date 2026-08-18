@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from openschwa_engine.alignment import ctc
-from openschwa_engine.alignment.acoustic import AcousticModel
+from openschwa_engine.alignment.acoustic import AcousticModel, Posteriors
 from openschwa_engine.audio import PreparedAudio
 from openschwa_engine.models.phone_set import PhoneMap, PhoneSetError, normalize
 
@@ -31,6 +31,7 @@ class AlignedPhone:
     end_s: float
     gop: float
     confidence: float
+    frame_indices: tuple[int, ...] = ()  # label frames in the posteriors matrix
 
 
 #: `failed` means the recording could not be analysed at all; `low_confidence`
@@ -44,6 +45,9 @@ class AlignmentOutcome:
     confidence: float
     phones: tuple[AlignedPhone, ...] = ()
     reason: str | None = None
+    #: Frame posteriors the alignment was computed from; None whenever the
+    #: analysis failed before the model ran. Contrast scoring (M1) reads these.
+    posteriors: Posteriors | None = None
 
     @property
     def ok(self) -> bool:
@@ -112,6 +116,7 @@ def align_exercise(
             end_s=round(min(offset + segment.end_frame * posteriors.hop_s, duration), 4),
             gop=round(segment.gop, 4),
             confidence=round(segment.confidence, 4),
+            frame_indices=tuple(int(f) for f in segment.frame_indices),
         )
         for segment in segments
     )
@@ -121,4 +126,4 @@ def align_exercise(
             "failed", confidence, phones, reason="alignment confidence below the usable floor"
         )
     status: AlignmentStatus = "ok" if confidence >= low_confidence else "low_confidence"
-    return AlignmentOutcome(status, round(confidence, 4), phones)
+    return AlignmentOutcome(status, round(confidence, 4), phones, posteriors=posteriors)

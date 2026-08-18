@@ -86,6 +86,11 @@ class Alignment(_Model):
     confidence: float = Field(ge=0, le=1)
     words: list[Word] = []
     phones: list[Phone] = []
+    reason: str | None = Field(
+        default=None,
+        description="Why the analysis refused (no speech, clipping, missing model, ...). "
+        "Set only when status=failed; the composer turns it into a retry message.",
+    )
 
 
 class ContrastResult(_Model):
@@ -102,6 +107,18 @@ class ContrastResult(_Model):
         default=None, description="The confusion phone heard; set only when verdict=substituted."
     )
     confidence: float = Field(ge=0, le=1, description="Calibrated (Platt-scaled), not raw margin.")
+    #: Alternative score aggregations of the same frames (bake-off evidence;
+    #: clients may ignore them). See scoring/contrast.py for the definitions.
+    spike_score: float | None = Field(
+        default=None,
+        description="Log-ratio on the single frame most favouring a confusion.",
+    )
+    vote_fraction: float | None = Field(
+        default=None,
+        ge=0,
+        le=1,
+        description="Share of label frames where a confusion outvoted the target.",
+    )
 
 
 class F0Track(_Model):

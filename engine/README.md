@@ -16,8 +16,10 @@ comes back with `alignment.status = "failed"` and a single `retry`. That is the
 configuration CI runs, because the degraded path is the one that must never
 break.
 
-The acoustic model itself (~1.3 GB) is downloaded separately, into a
-platformdirs cache outside the repo (`OPENSCHWA_MODEL_DIR` to relocate):
+The acoustic model is downloaded separately, into a platformdirs cache
+outside the repo (`OPENSCHWA_MODEL_DIR` to relocate). The default aligner
+is the 0.38 GB charsiu CTC model; the 1.26 GB espeak model is the alternative
+(see `models/registry.py` and the M1 bake-off in `../eval/reports/`):
 
 ```bash
 just models    # or use the app's first-run download panel

@@ -25,16 +25,13 @@
     </ul>
   {:else if alignment && alignment.status !== 'failed'}
     <!--
-      An empty feedback list after a successful analysis is the honest M0 state,
-      not a bug: no judgement type has cleared the shipping bar (`eval/README.md`) yet,
-      so the engine shows evidence and withholds verdicts. Saying so beats an
+      An empty feedback list after a successful alignment is honest silence:
+      either no calibration exists yet (the engine cannot judge) or every
+      verdict stayed below its calibrated confidence gate. Both are silence
+      by design - "no feedback beats wrong feedback" - and saying so beats an
       empty panel that reads as a failure.
     -->
-    <p class="idle">
-      Aligned successfully. Pronunciation scoring arrives in M1 — until the eval
-      harness proves it, the engine shows you the measurements rather than
-      guessing at a verdict.
-    </p>
+    <p class="idle">Aligned successfully. No feedback this time.</p>
   {:else}
     <p class="idle">No feedback for this attempt.</p>
   {/if}

@@ -8,7 +8,6 @@ import json
 import pytest
 
 from openschwa_engine.models.phone_set import (
-    CANONICAL_EN,
     TABLES,
     PhoneMap,
     PhoneSetError,
@@ -26,14 +25,18 @@ def phone_map(request):
     return PhoneMap.build(request.param.id, request.param.phone_table, _vocab(request.param))
 
 
-def test_every_canonical_phone_maps(phone_map):
-    assert set(phone_map.token_of) == set(CANONICAL_EN)
+def test_every_required_phone_maps(phone_map):
+    """Every phone the model may *discriminate* must have a token. Outside the
+    required set a table may be lossy (see CHARSIU_EN's schwa), but a missing
+    drill phone would silently corrupt verdicts."""
+    assert phone_map.required <= set(phone_map.token_of)
 
 
 def test_round_trip_canonical_to_token_and_back(phone_map):
-    """The mapping must be injective — two phones sharing a token would be
-    indistinguishable, which is fatal for closed-set contrast scoring."""
-    for phone in sorted(CANONICAL_EN):
+    """The mapping must be injective on the required set — two required phones
+    sharing a token would be indistinguishable, which is fatal for closed-set
+    contrast scoring."""
+    for phone in sorted(phone_map.required):
         token = phone_map.token_of[phone]
         assert phone_map.canonical_of_token(token) == phone
 
@@ -45,7 +48,9 @@ def test_indices_are_real_vocabulary_positions(phone_map):
 
 
 def test_blank_is_the_pad_token(phone_map):
-    assert phone_map.blank_index == _vocab(MANIFEST[phone_map.model_id])["<pad>"]
+    vocab = _vocab(MANIFEST[phone_map.model_id])
+    expected = next(vocab[c] for c in ("<pad>", "[PAD]", "pad") if c in vocab)
+    assert phone_map.blank_index == expected
 
 
 def test_script_g_is_not_ascii_g(phone_map):
@@ -54,6 +59,24 @@ def test_script_g_is_not_ascii_g(phone_map):
     assert normalize("g") == "ɡ"
     assert "ɡ" in phone_map.token_of
     assert "g" not in phone_map.token_of
+
+
+def test_charsiu_required_phones_map_to_unique_tokens():
+    """The bake-off contrast lives inside the required set: /ð/ vs {z, d, v}
+    must be four distinct charsiu tokens."""
+    charsiu = TABLES["charsiu_en"]
+    assert charsiu["ð"] == "DH"
+    assert charsiu["z"] == "Z"
+    assert charsiu["d"] == "D"
+    assert charsiu["v"] == "V"
+
+
+def test_charsiu_may_be_lossy_outside_the_required_set():
+    """No schwa exists in the charsiu vocabulary, so ə and ʌ share AH: fine for
+    alignment, and unreachable for contrast scoring (both are outside the
+    required set)."""
+    charsiu = TABLES["charsiu_en"]
+    assert charsiu["ə"] == charsiu["ʌ"] == "AH"
 
 
 def test_english_long_vowels_carry_the_length_mark():

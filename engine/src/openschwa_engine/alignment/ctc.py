@@ -38,6 +38,7 @@ class PhoneSegment:
     start_frame: int
     end_frame: int  # exclusive
     label_frames: int
+    frame_indices: npt.NDArray[np.int64]  # the exact label frames, for contrast scoring
     gop: float
     confidence: float
 
@@ -158,6 +159,7 @@ def segment_phones(
                 start_frame=boundaries[i],
                 end_frame=max(boundaries[i + 1], boundaries[i] + 1),
                 label_frames=int(frames_for_label.size),
+                frame_indices=frames_for_label,
                 gop=gop,
                 confidence=min(max(confidence, 0.0), 1.0),
             )

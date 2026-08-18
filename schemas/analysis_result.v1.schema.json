@@ -35,6 +35,19 @@
           },
           "title": "Phones",
           "type": "array"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Why the analysis refused (no speech, clipping, missing model, ...). Set only when status=failed; the composer turns it into a retry message.",
+          "title": "Reason"
         }
       },
       "required": [
@@ -380,6 +393,34 @@
           "minimum": 0,
           "title": "Confidence",
           "type": "number"
+        },
+        "spike_score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Log-ratio on the single frame most favouring a confusion.",
+          "title": "Spike Score"
+        },
+        "vote_fraction": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Share of label frames where a confusion outvoted the target.",
+          "title": "Vote Fraction"
         }
       },
       "required": [

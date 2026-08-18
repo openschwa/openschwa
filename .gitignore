@@ -32,3 +32,11 @@ Samples/
 
 # Eval corpora are never committed (see eval/README.md)
 eval/data/
+
+# Token-level checkpoints are corpus-derived intermediates; the md/json
+# reports above them ARE committed (docs/architecture.md §2).
+eval/reports/checkpoints/
+
+# Workspace-local model cache (sandbox-friendly OPENSCHWA_MODEL_DIR)
+.models/
+.cache/

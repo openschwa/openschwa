@@ -1,0 +1,316 @@
+{
+  "run_tag": "m1-2026-08-18-wav2vec2-espeak-cv-ft-\u00f0-vs-z-d-v",
+  "model_id": "wav2vec2-espeak-cv-ft",
+  "target": "\u00f0",
+  "confusions": [
+    "z",
+    "d",
+    "v"
+  ],
+  "seed": 42,
+  "tokens": {
+    "train": 4070,
+    "test": 2608
+  },
+  "score_variant": "gop",
+  "variants": {
+    "mean": {
+      "platt": {
+        "a": -0.09018451232640835,
+        "b": -0.9333585132707114
+      },
+      "threshold": 0.995,
+      "status": "SHIPPING BAR NOT MET",
+      "train": {
+        "tokens": 4070,
+        "positives": 1385,
+        "verdicts": 4015,
+        "refused": 55,
+        "audio_problem_refused": 0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 1385,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      "test": {
+        "tokens": 2608,
+        "positives": 594,
+        "verdicts": 2550,
+        "refused": 58,
+        "audio_problem_refused": 0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 594,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      "auc": 0.549
+    },
+    "spike": {
+      "platt": {
+        "a": -0.08930012666381738,
+        "b": -0.9289487756978319
+      },
+      "threshold": 0.995,
+      "status": "SHIPPING BAR NOT MET",
+      "train": {
+        "tokens": 4070,
+        "positives": 1385,
+        "verdicts": 4015,
+        "refused": 55,
+        "audio_problem_refused": 0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 1385,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      "test": {
+        "tokens": 2608,
+        "positives": 594,
+        "verdicts": 2550,
+        "refused": 58,
+        "audio_problem_refused": 0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 594,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      "auc": 0.5492
+    },
+    "vote": {
+      "platt": {
+        "a": -0.9885784047394701,
+        "b": -0.491194986069948
+      },
+      "threshold": 0.995,
+      "status": "SHIPPING BAR NOT MET",
+      "train": {
+        "tokens": 4070,
+        "positives": 1385,
+        "verdicts": 4015,
+        "refused": 55,
+        "audio_problem_refused": 0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 1385,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      "test": {
+        "tokens": 2608,
+        "positives": 594,
+        "verdicts": 2550,
+        "refused": 58,
+        "audio_problem_refused": 0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 594,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      "auc": 0.581
+    },
+    "gop": {
+      "platt": {
+        "a": 0.15144455271689605,
+        "b": -0.5139735396346445
+      },
+      "threshold": 0.995,
+      "status": "SHIPPING BAR NOT MET",
+      "train": {
+        "tokens": 4070,
+        "positives": 1385,
+        "verdicts": 4070,
+        "refused": 0,
+        "audio_problem_refused": 0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 1385,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      "test": {
+        "tokens": 2608,
+        "positives": 594,
+        "verdicts": 2608,
+        "refused": 0,
+        "audio_problem_refused": 0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 594,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      "auc": 0.5941
+    }
+  },
+  "platt": {
+    "a": 0.15144455271689605,
+    "b": -0.5139735396346445
+  },
+  "gop_platt": {
+    "a": -0.15144884534925607,
+    "b": 0.5139689184544968
+  },
+  "threshold": 0.995,
+  "status": "SHIPPING BAR NOT MET",
+  "train_metrics": {
+    "tokens": 4070,
+    "positives": 1385,
+    "verdicts": 4070,
+    "refused": 0,
+    "audio_problem_refused": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 1385,
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0
+  },
+  "test_metrics": {
+    "tokens": 2608,
+    "positives": 594,
+    "verdicts": 2608,
+    "refused": 0,
+    "audio_problem_refused": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 594,
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0
+  },
+  "test_auc": 0.5941,
+  "per_l1": {
+    "arabic": {
+      "tokens": 216,
+      "positives": 40,
+      "verdicts": 216,
+      "refused": 0,
+      "audio_problem_refused": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 40,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "hindi": {
+      "tokens": 205,
+      "positives": 93,
+      "verdicts": 205,
+      "refused": 0,
+      "audio_problem_refused": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 93,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "korean": {
+      "tokens": 205,
+      "positives": 125,
+      "verdicts": 205,
+      "refused": 0,
+      "audio_problem_refused": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 125,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "mandarin": {
+      "tokens": 1646,
+      "positives": 109,
+      "verdicts": 1646,
+      "refused": 0,
+      "audio_problem_refused": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 109,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "spanish": {
+      "tokens": 140,
+      "positives": 88,
+      "verdicts": 140,
+      "refused": 0,
+      "audio_problem_refused": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 88,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "vietnamese": {
+      "tokens": 196,
+      "positives": 139,
+      "verdicts": 196,
+      "refused": 0,
+      "audio_problem_refused": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 139,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    }
+  },
+  "per_corpus": {
+    "l2arctic": {
+      "tokens": 1113,
+      "positives": 593,
+      "verdicts": 1113,
+      "refused": 0,
+      "audio_problem_refused": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 593,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "so762": {
+      "tokens": 1495,
+      "positives": 1,
+      "verdicts": 1495,
+      "refused": 0,
+      "audio_problem_refused": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    }
+  },
+  "alignment": {
+    "statuses": {
+      "ok": 6565,
+      "low_confidence": 113
+    },
+    "mean_ok_confidence": 0.8176
+  },
+  "latency": {
+    "cold_ms": 0.0,
+    "median_warm_ms": 356.5
+  },
+  "download_bytes": 1263540000,
+  "flagged_sample": []
+}

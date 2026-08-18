@@ -16,18 +16,48 @@ holds. Recall is negotiable; precision is not. A feedback type that cannot
 clear the bar does not ship — the engine says "retry" instead, which is a
 first-class outcome rather than a failure.
 
-Imports the engine as a library — no HTTP in the loop. Lands in M1.
+Imports the engine as a library - no HTTP in the loop.
+
+## Running it (M1)
+
+```bash
+just models                              # acoustic model(s) into the cache
+cd eval && uv sync --extra ml            # harness env, with the engine's ml extra
+uv run python run_eval.py \
+    --contrast "ð:z,d,v" \
+    --l2arctic data/l2arctic --speechocean762 data/speechocean762 \
+    --model wav2vec2-espeak-cv-ft --model charsiu-en-w2v2-ctc \
+    --out reports/
+```
+
+Per model the harness: runs every labeled target token through the full
+pipeline (include_ungated=true, no HTTP), fits Platt calibration on the
+train pool, sweeps the operating threshold precision-first (with the per-L1
+floor), measures the held-out pool through the *shipped* code path, and
+writes <run>.md + <run>.json under reports/. The winner's calibration is
+committed to the engine's scoring/calibration.yaml **only when the bar is
+met**; a run that misses the bar commits nothing and says so in the report.
+
+Checkpointed: token-level results stream to reports/checkpoints/<run>.jsonl,
+so an interrupted run resumes instead of restarting. --limit N runs the
+first N utterances for a smoke pass. The flagged-items list in the report is
+the human spot-check (~30 items, with audio paths and labels).
 
 ## Datasets (not committed; adapters expect local paths)
 
-- **speechocean762** — open MDD corpus, phone-level accuracy scores from five
-  experts; L1-Mandarin speakers (adults and children).
+- **speechocean762** - open MDD corpus, phone-level accuracy scores from five
+  experts; L1-Mandarin speakers (adults and children). Ground truth is
+  resource/scores-detail.json: each expert spells realized phones with
+  braces around errors; >=3/5 experts bracketing a phone marks it substituted.
   https://www.openslr.org/101/
-- **L2-ARCTIC** — six L1 backgrounds (Hindi, Korean, Mandarin, Spanish,
-  Arabic, Vietnamese); TextGrids tag substitutions/deletions (e.g. ð → d).
+- **L2-ARCTIC** - six L1 backgrounds (Hindi, Korean, Mandarin, Spanish,
+  Arabic, Vietnamese); annotation TextGrids carry mispronunciation tags
+  ("target,realized,code" triples: s/d/a) in the phones tier. Only annotated
+  utterances have ground truth and are evaluated. License: CC BY-NC 4.0 -
+  fine for evaluation, never committed.
   https://psi.engr.tamu.edu/l2-arctic-corpus/
 
-Both skew to specific L1s and read speech — eval numbers are a floor of
+Both skew to specific L1s and read speech - eval numbers are a floor of
 evidence, not proof for every learner. Report metrics **per contrast and per
 L1 group**; accent-specific failures must not average away.
 

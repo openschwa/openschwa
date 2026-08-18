@@ -43,6 +43,10 @@ export interface Alignment {
   confidence: number;
   words?: Word[];
   phones?: Phone[];
+  /**
+   * Why the analysis refused (no speech, clipping, missing model, ...). Set only when status=failed; the composer turns it into a retry message.
+   */
+  reason?: string | null;
 }
 export interface Word {
   text: string;
@@ -90,6 +94,14 @@ export interface ContrastResult {
    * Calibrated (Platt-scaled), not raw margin.
    */
   confidence: number;
+  /**
+   * Log-ratio on the single frame most favouring a confusion.
+   */
+  spike_score?: number | null;
+  /**
+   * Share of label frames where a confusion outvoted the target.
+   */
+  vote_fraction?: number | null;
 }
 export interface Prosody {
   f0: F0Track;

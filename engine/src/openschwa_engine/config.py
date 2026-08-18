@@ -43,10 +43,18 @@ class Settings(BaseSettings):
     #: turns this on; the bare engine leaves it off.
     open_browser: bool = False
 
-    #: Alignment model id in models.registry.MANIFEST. Provisional for M0 — the
-    #: M1 bake-off (docs/architecture.md §6) picks the shipping model; this setting is how a
-    #: candidate gets swapped in without touching pipeline code.
-    alignment_model: str = "wav2vec2-espeak-cv-ft"
+    #: Alignment model id in models.registry.MANIFEST. The M1 bake-off
+    #: (eval/reports/m1-bakeoff-*.md) found neither candidate able to carry the
+    #: /ð/ contrast, but for the alignment job itself charsiu won every
+    #: measurable criterion: higher alignment confidence on L2 speech (0.90 vs
+    #: 0.82), a 3.3x smaller download, and 2.6x lower latency. This setting is
+    #: still how a candidate gets swapped without touching pipeline code.
+    alignment_model: str = "charsiu-en-w2v2-ctc"
+
+    #: VAD backend behind audio.preprocess.detect_speech: "auto" prefers
+    #: silero-vad when the ml extra can load it and falls back to the energy
+    #: detector; "silero"/"energy" force one path.
+    vad_backend: str = "auto"
 
     #: Load the acoustic model at startup rather than on the first recording.
     #: Disable in tests and tooling that never analyse audio.

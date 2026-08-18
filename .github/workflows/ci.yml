@@ -46,3 +46,18 @@ jobs:
       - run: npm run check
       - run: npm test
       - run: npm run build
+
+  eval:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: eval
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      # Fixture smoke suite only: no torch, no model, no corpus downloads.
+      # Full runs are manual/nightly (eval/README.md).
+      - run: uv sync
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run python -m pytest -q

@@ -36,6 +36,10 @@ ml = [
     "transformers>=4.44",
     "huggingface_hub>=0.24",
     "tqdm>=4.66",
+    # Neural VAD (M1), behind audio.preprocess.detect_speech; onnxruntime is
+    # its inference runtime. Both are optional like everything else here.
+    "silero-vad>=5.1",
+    "onnxruntime>=1.17",
 ]
 
 [project.scripts]
@@ -84,7 +88,7 @@ files = ["src/openschwa_engine"]
 # present with the `ml` extra, so they must not be a hard requirement for a
 # type check either.
 [[tool.mypy.overrides]]
-module = ["soxr.*", "parselmouth.*", "torch.*", "transformers.*", "huggingface_hub.*", "tqdm.*"]
+module = ["soxr.*", "parselmouth.*", "torch.*", "transformers.*", "huggingface_hub.*", "tqdm.*", "silero_vad.*"]
 ignore_missing_imports = true
 
 # The acoustic wrapper is untyped at its boundary by necessity: it talks to

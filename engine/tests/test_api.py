@@ -23,8 +23,11 @@ EXERCISE_ID = "en.seg.dh-z.this"
 
 @pytest.fixture
 def client(tmp_path):
-    """An engine whose model cache is empty, whatever the developer has downloaded."""
-    return TestClient(create_app(Settings(model_dir=tmp_path / "models")))
+    """An engine whose model cache is empty, whatever the developer has downloaded.
+
+    The energy VAD is pinned: these tests must be deterministic whether or not
+    the ml extra (and therefore silero) happens to be installed locally."""
+    return TestClient(create_app(Settings(model_dir=tmp_path / "models", vad_backend="energy")))
 
 
 def recording(duration_s: float = 1.2, rate: int = 48_000, amp: float = 0.4) -> bytes:
@@ -59,7 +62,7 @@ def test_health_reports_versions_and_analysis_readiness(client):
     body = client.get("/v1/health").json()
     assert body["status"] == "ok"
     assert body["schema_version"] == "1.0"
-    assert body["alignment_model"] == "wav2vec2-espeak-cv-ft"
+    assert body["alignment_model"] == "charsiu-en-w2v2-ctc"
     assert body["analysis_available"] is False  # empty model dir
 
 
@@ -105,6 +108,21 @@ def test_analysis_without_a_model_is_a_valid_retry_not_an_error(client):
     result = AnalysisResult.model_validate(response.json())
     assert result.alignment.status == "failed"
     assert result.alignment.phones == []
+    assert [item.kind for item in result.feedback] == ["retry"]
+
+
+def test_include_ungated_is_accepted_and_changes_nothing_without_a_model(client):
+    """The eval harness's switch exists on the HTTP surface; with no model the
+    degraded path is identical with or without it."""
+    response = client.post(
+        "/v1/analyze",
+        files={"audio": ("recording.wav", recording(), "audio/wav")},
+        data={"exercise_id": EXERCISE_ID},
+        params={"include_ungated": "true"},
+    )
+    assert response.status_code == 200
+    result = AnalysisResult.model_validate(response.json())
+    assert result.alignment.status == "failed"
     assert [item.kind for item in result.feedback] == ["retry"]
 
 

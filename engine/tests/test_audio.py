@@ -193,3 +193,39 @@ def test_a_normal_recording_passes_quality():
     prepared = prepare(utterance(RATE), RATE)
     assert prepared.quality.usable is True
     assert prepared.quality.clipping is False
+
+
+def test_energy_backend_is_forced_by_name():
+    """Whatever the environment, backend='energy' picks the M0 detector."""
+    samples = utterance(MODEL_SAMPLE_RATE)
+    energy_interval, snr = detect_speech(samples, MODEL_SAMPLE_RATE, vad_backend="energy")
+    assert energy_interval is not None
+    assert energy_interval[0] == pytest.approx(0.3, abs=0.1)
+    assert snr is not None and snr > 20
+
+
+def test_auto_backend_falls_back_to_energy_without_the_ml_extra():
+    """CI installs no ml extra, so 'auto' must behave exactly like 'energy'."""
+    samples = utterance(MODEL_SAMPLE_RATE)
+    interval, _ = detect_speech(samples, MODEL_SAMPLE_RATE, vad_backend="auto")
+    assert interval is not None
+    assert interval[0] == pytest.approx(0.3, abs=0.1)
+
+
+def test_silero_backend_refuses_when_silero_is_unavailable():
+    """Forcing silero without the runtime must refuse (None), not silently
+    hand back another detector's answer."""
+    samples = utterance(MODEL_SAMPLE_RATE)
+    interval, _ = detect_speech(samples, MODEL_SAMPLE_RATE, vad_backend="silero")
+    assert interval is None
+
+
+def test_silero_interval_is_used_when_it_loads(monkeypatch):
+    from openschwa_engine.audio import preprocess
+
+    monkeypatch.setattr(preprocess, "_silero_interval", lambda samples: (0.31, 0.88))
+    samples = utterance(MODEL_SAMPLE_RATE)
+    interval, _ = detect_speech(samples, MODEL_SAMPLE_RATE, vad_backend="auto")
+    assert interval is not None
+    assert interval[0] == pytest.approx(0.31 - preprocess._PAD_S, abs=0.01)
+    assert interval[1] == pytest.approx(0.88 + preprocess._PAD_S, abs=0.01)

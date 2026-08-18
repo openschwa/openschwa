@@ -7,9 +7,10 @@
 # launch, which turns a 3-second start into a 30-second one. onedir also keeps
 # torch's dylibs where the loader expects them.
 #
-# What is deliberately NOT bundled: the acoustic model. It is 1.3 GB, it lives
-# in a platformdirs cache shared with the dev install, and it is licensed
-# separately (Apache-2.0). The app downloads it on first run.
+# What is deliberately NOT bundled: the acoustic models. The default aligner
+# is now the 0.38 GB charsiu CTC model (the 1.26 GB espeak model remains an
+# option); both live in a platformdirs cache shared with the dev install, and
+# are licensed separately. The app downloads the chosen one on first run.
 
 from pathlib import Path
 
@@ -24,7 +25,8 @@ datas = [
     (str(REPO_ROOT / "content"), "content"),
     (str(REPO_ROOT / "ui" / "dist"), "ui/dist"),
 ]
-# The committed vocabulary snapshot ships inside the package.
+# The committed vocabulary snapshots ship inside the package; so does
+# scoring/calibration.yaml when one exists (a future contrast passing the bar).
 datas += collect_data_files("openschwa_engine")
 
 hiddenimports = []

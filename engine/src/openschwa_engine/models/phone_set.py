@@ -186,8 +186,79 @@ ESPEAK_EN: Mapping[str, str] = MappingProxyType(
     }
 )
 
-#: Table name -> mapping. `registry.MANIFEST` names one of these per model.
-TABLES: Mapping[str, Mapping[str, str]] = MappingProxyType({"espeak_en": ESPEAK_EN})
+#: Canonical -> charsiu token for charsiu/en_w2v2_ctc_libris_and_cv (M1 bake-off
+#: candidate). The vocabulary is stressless ARPABET: 39 phones, no schwa, no
+#: r-coloured vowel, no vowel+r digraphs. The lossy entries below (ə/ʌ -> AH,
+#: ɚ/ɝ -> ER, sequences -> their first phone) exist so that alignment of any
+#: utterance works; contrast scoring is only ever asked about phones whose
+#: tokens are unique, which is what `required` pins in PhoneMap.build.
+CHARSIU_EN: Mapping[str, str] = MappingProxyType(
+    {
+        "p": "P",
+        "b": "B",
+        "t": "T",
+        "d": "D",
+        "k": "K",
+        "ɡ": "G",
+        "tʃ": "CH",
+        "dʒ": "JH",
+        "f": "F",
+        "v": "V",
+        "θ": "TH",
+        "ð": "DH",
+        "s": "S",
+        "z": "Z",
+        "ʃ": "SH",
+        "ʒ": "ZH",
+        "h": "HH",
+        "m": "M",
+        "n": "N",
+        "ŋ": "NG",
+        "l": "L",
+        "ɹ": "R",
+        "w": "W",
+        "j": "Y",
+        "i": "IY",
+        "ɪ": "IH",
+        "ɛ": "EH",
+        "æ": "AE",
+        "ə": "AH",  # no schwa token: best-effort lossy
+        "ʌ": "AH",
+        "ɑ": "AA",
+        "ɔ": "AO",
+        "ʊ": "UH",
+        "u": "UW",
+        "ɚ": "ER",  # no r-coloured tokens: best-effort lossy
+        "ɝ": "ER",
+        "eɪ": "EY",
+        "aɪ": "AY",
+        "ɔɪ": "OY",
+        "oʊ": "OW",
+        "aʊ": "AW",
+        "ɑɹ": "AA",  # sequences: best-effort lossy, first phone only
+        "ɔɹ": "AO",
+        "ɛɹ": "EH",
+        "ɪɹ": "IH",
+        "ʊɹ": "UH",
+    }
+)
+
+#: Table name -> mapping. registry.MANIFEST names one of these per model.
+TABLES: Mapping[str, Mapping[str, str]] = MappingProxyType(
+    {"espeak_en": ESPEAK_EN, "charsiu_en": CHARSIU_EN}
+)
+
+#: The phones a model is allowed to *discriminate*: its tokens for these must
+#: be unique. Alignment may be lossy outside this set; contrast scoring never is.
+REQUIRED: Mapping[str, frozenset[str]] = MappingProxyType(
+    {
+        "espeak_en": CANONICAL_EN,
+        "charsiu_en": frozenset({"ð", "z", "d", "v"}),
+    }
+)
+
+#: Blank token spellings, in preference order (espeak uses '<pad>', charsiu '[PAD]').
+_BLANK_CANDIDATES = ("<pad>", "[PAD]", "pad")
 
 
 @dataclass(frozen=True)
@@ -199,6 +270,9 @@ class PhoneMap:
     token_of: Mapping[str, str]
     index_of: Mapping[str, int]
     blank_index: int
+    #: Phones whose tokens must be unique: closed-set contrast scoring only ever
+    #: runs inside this set. Outside it the table may be lossy for alignment.
+    required: frozenset[str] = CANONICAL_EN
 
     @classmethod
     def build(cls, model_id: str, table_name: str, vocab: Mapping[str, int]) -> "PhoneMap":
@@ -207,11 +281,12 @@ class PhoneMap:
             table = TABLES[table_name]
         except KeyError as exc:
             raise PhoneSetError(f"unknown phone table '{table_name}'") from exc
+        required = REQUIRED.get(table_name, CANONICAL_EN)
 
-        missing_canonical = sorted(CANONICAL_EN - set(table))
+        missing_canonical = sorted(required - set(table))
         if missing_canonical:
             raise PhoneSetError(
-                f"table '{table_name}' is missing canonical phones: {missing_canonical}"
+                f"table '{table_name}' is missing required canonical phones: {missing_canonical}"
             )
         missing_tokens = sorted({t for t in table.values() if t not in vocab})
         if missing_tokens:
@@ -219,16 +294,24 @@ class PhoneMap:
                 f"table '{table_name}' maps to tokens absent from the {model_id} "
                 f"vocabulary: {missing_tokens}"
             )
-        collisions = sorted({t for t in table.values() if list(table.values()).count(t) > 1})
+        # Only phones the engine may discriminate need unique tokens: a lossy
+        # schwa mapping must not corrupt alignment, but a shared token between
+        # /ð/ and /z/ would corrupt every verdict.
+        required_tokens = [table[p] for p in required]
+        collisions = sorted({t for t in required_tokens if required_tokens.count(t) > 1})
         if collisions:
             raise PhoneSetError(
-                f"table '{table_name}' maps several canonical phones to {collisions}; "
-                "distinct phones must stay distinguishable"
+                f"table '{table_name}' maps several required phones to {collisions}; "
+                "discriminated phones must stay distinguishable"
             )
 
-        blank = vocab.get("<pad>")
+        blank: int | None = None
+        for candidate in _BLANK_CANDIDATES:
+            blank = vocab.get(candidate)
+            if blank is not None:
+                break
         if blank is None:
-            raise PhoneSetError(f"{model_id} vocabulary has no <pad> token to use as CTC blank")
+            raise PhoneSetError(f"{model_id} vocabulary has no pad token to use as CTC blank")
 
         return cls(
             model_id=model_id,
@@ -236,6 +319,7 @@ class PhoneMap:
             token_of=MappingProxyType(dict(table)),
             index_of=MappingProxyType({p: vocab[t] for p, t in table.items()}),
             blank_index=blank,
+            required=required,
         )
 
     def to_index(self, canonical_phone: str) -> int:

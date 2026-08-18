@@ -33,9 +33,11 @@ Once the acoustic model is downloaded once, the whole thing works offline.
 
 ## The journey of one recording
 
-> **Current status (M0):** today the app *measures*. From M1 on it will also
-> *judge* — and only when it can prove it is right (see "The shipping bar"
-> below).
+> **Current status (M1, negative bake-off):** today the app *measures* — and
+> holds an exam before it judges. The M1 exam was held in August 2026 over two
+> L2 speech corpora and two candidate ears: neither could tell /ð/ from /z/
+> reliably, so the app still refuses to judge. That refusal is the design
+> working: see "The shipping bar" below.
 
 Here is what happens between you pressing record and seeing your analysis.
 
@@ -57,8 +59,8 @@ format: 16 kHz, one channel.
 around your word. It must be careful not to mistake quiet sounds for silence:
 the /s/ in *this* sits 20–30 dB below the neighbouring vowel. A naive detector
 would cut it off; this one uses hysteresis — it only "gives up" on the sound
-after a longer stretch of quiet. (M1 will upgrade this to a smarter,
-neural-network-based detector.)
+after a longer stretch of quiet. (M1 upgraded this to a neural-network-based
+detector — silero — with the energy detector kept as a fallback.)
 
 **5. Quality checks.** Is there any sound at all? Is it clipped? "Too quiet"
 now means only *dead* — an unplugged or muted microphone. Quiet-but-clean
@@ -121,9 +123,12 @@ until each judgment type has passed its exam (the shipping bar below).
 mistake and destroys trust; silence costs one retry. Therefore every judgment
 is confidence-gated, and a new *kind* of feedback ships only after an offline
 exam proves it: the eval harness runs the candidate against real L2 speech
-corpora and measures precision and recall. The pass mark for M1's contrast
-feedback is **precision ≥ 0.90 at recall ≥ 0.4**. The exam board is
-[eval/README.md](../eval/README.md).
+corpora and measures precision and recall. The pass mark for the segmental
+contrast feedback is **precision ≥ 0.90 at recall ≥ 0.4**. The exam board is
+[eval/README.md](../eval/README.md). The first exam — /ð/ vs /z/, held in
+August 2026 over L2-ARCTIC and speechocean762 — was **failed by both
+candidate ears** (they guessed at near-chance levels), so that feedback type
+does not ship and the app keeps saying "retry" instead.
 
 **Scripted drills only, never open transcription.** A general speech
 recogniser is trained to be robust to accents: it hears *zis* and politely

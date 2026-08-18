@@ -10,10 +10,14 @@
     alignment = null,
     durationS = 0,
     highlightIndex = null,
+    anchorIndex = null,
   }: {
     alignment?: Alignment | null;
     durationS?: number;
     highlightIndex?: number | null;
+    // A segmental_substitution verdict anchors here: rendered as an error,
+    // because a flag is the one thing a learner must not miss.
+    anchorIndex?: number | null;
   } = $props();
 
   const phones = $derived(alignment?.phones ?? []);
@@ -29,11 +33,12 @@
       {#each phones as phone (phone.index)}
         <div
           class="phone"
-          class:highlight={highlightIndex === phone.index}
+          class:highlight={highlightIndex === phone.index && anchorIndex !== phone.index}
+          class:error={anchorIndex === phone.index}
           style="left: {percent(phone.start_s)}%; width: {percent(phone.end_s - phone.start_s)}%"
           title={`/${phone.label}/  ${phone.start_s.toFixed(3)}–${phone.end_s.toFixed(3)}s${
             phone.gop != null ? `  ·  GOP ${phone.gop.toFixed(2)}` : ''
-          }`}
+          }${anchorIndex === phone.index ? '  ·  flagged' : ''}`}
         >
           <span class="label">{phone.label}</span>
         </div>
@@ -71,6 +76,12 @@
   .phone.highlight {
     background: var(--highlight);
     color: var(--highlight-fg);
+  }
+  .phone.error {
+    background: var(--feedback-error-bg);
+    border-color: var(--error);
+    color: var(--error);
+    font-weight: 700;
   }
   .uncertain .phone {
     opacity: 0.65;

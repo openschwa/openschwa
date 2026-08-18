@@ -13,6 +13,7 @@
     type ModelCatalog,
   } from './lib/api/client';
   import { MicRecorder, type Recording } from './lib/audio/capture';
+  import { substitutionAnchor } from './lib/feedback';
   import FeedbackPanel from './lib/components/FeedbackPanel.svelte';
   import LevelMeter from './lib/components/LevelMeter.svelte';
   import Logo from './lib/components/Logo.svelte';
@@ -55,6 +56,9 @@
 
   const focusPhone = $derived(exercise?.phones.find((p) => p.focus) ?? null);
   const confusions = $derived(focusPhone?.confusions ?? []);
+  // A substitution verdict anchors the error highlight to its phone; the
+  // focus phone stays highlighted whenever no verdict is claiming the stage.
+  const anchorIndex = $derived(substitutionAnchor(analysis?.feedback ?? []));
   const quality = $derived(analysis?.audio.quality ?? null);
   const lowLevel = $derived(
     quality?.speech_level_dbfs != null && quality.speech_level_dbfs < -40,
@@ -226,6 +230,7 @@
         alignment={analysis?.alignment ?? null}
         durationS={captured?.durationS ?? 0}
         highlightIndex={focusPhone?.index ?? null}
+        anchorIndex={anchorIndex}
       />
       <PitchContour
         prosody={analysis?.prosody ?? null}

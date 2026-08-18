@@ -15,6 +15,7 @@ exercises, and still returns a schema-valid "retry" instead of crashing.
 import json
 import logging
 import queue
+import shutil
 import threading
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
@@ -47,6 +48,9 @@ class ModelSpec:
     download_bytes: int
     license: str
     note: str
+    #: Files the HF repo does not ship but the runtime needs, as
+    #: (local filename, committed source under models/vocab/). Copied after pull.
+    extra_files: tuple[tuple[str, str], ...] = ()
 
 
 MANIFEST: Mapping[str, ModelSpec] = MappingProxyType(
@@ -61,10 +65,32 @@ MANIFEST: Mapping[str, ModelSpec] = MappingProxyType(
             download_bytes=1_263_540_000,
             license="Apache-2.0",
             note=(
-                "Provisional M0 aligner: multilingual CTC over eSpeak IPA phonemes. "
-                "The shipping choice is deferred to the M1 bake-off."
+                "M0 aligner, kept as a bake-off candidate: multilingual CTC over "
+                "eSpeak IPA phonemes. The M1 bake-off (eval/reports/) found neither "
+                "candidate discriminative for the /ð/ contrast; charsiu won the "
+                "alignment-sanity / size / latency criteria and became the default."
             ),
-        )
+        ),
+        "charsiu-en-w2v2-ctc": ModelSpec(
+            id="charsiu-en-w2v2-ctc",
+            repo_id="charsiu/en_w2v2_ctc_libris_and_cv",
+            # Pinned commit, not 'main' - see module docstring.
+            revision="70f5061463f2927a27236d7e9d309cf0fd5282b3",
+            phone_table="charsiu_en",
+            vocab_snapshot="charsiu-en-w2v2-ctc.json",
+            download_bytes=377_706_220,
+            license="unknown (charsiu)",
+            note=(
+                "M1 bake-off candidate: wav2vec2-base CTC fine-tuned on LibriSpeech "
+                "and Common Voice, stressless ARPABET phone vocabulary."
+            ),
+            # The HF repo ships only config + weights; the preprocessor config
+            # and the vocabulary come from committed snapshots.
+            extra_files=(
+                ("preprocessor_config.json", "charsiu-en-w2v2-ctc-preprocessor.json"),
+                ("vocab.json", "charsiu-en-w2v2-ctc.json"),
+            ),
+        ),
     }
 )
 
@@ -237,6 +263,13 @@ class ModelRegistry:
             log.exception("download of %s failed", spec.id, exc_info=error[0])
             yield {"model_id": spec.id, "error": str(error[0])}
             return
+
+        # Files the upstream repo does not ship come from committed snapshots.
+        for local_name, source_name in spec.extra_files:
+            source = VOCAB_DIR / source_name
+            if not source.is_file():
+                raise ModelError(f"{spec.id}: missing committed extra file {source}")
+            shutil.copyfile(source, target / local_name)
 
         # Reading the vocabulary validates it against the committed snapshot.
         self.vocab(spec)
