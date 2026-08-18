@@ -47,7 +47,7 @@ class TrainOptions:
     seed: int = 42
     max_steps: int | None = None  # smoke runs
     max_segment_s: float = 0.5  # pad/truncate ceiling
-    num_workers: int = 0
+    use_amp: bool = True  # bf16 autocast on CUDA; disable for fp32 experiments
 
 
 def load_dataset(data_dir: Path) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
@@ -255,7 +255,9 @@ def train(options: TrainOptions) -> dict[str, object]:
             ]
             audio, labels, _lengths, mask = collate(batch, device, max_samples)
             context = (
-                torch.autocast("cuda", dtype=torch.bfloat16) if device == "cuda" else nullcontext()
+                torch.autocast("cuda", dtype=torch.bfloat16)
+                if device == "cuda" and options.use_amp
+                else nullcontext()
             )
             with context:
                 logits = model(audio, attention_mask=mask).logits
@@ -344,6 +346,7 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--lr-head", type=float, default=5e-4)
     parser.add_argument("--lr-full", type=float, default=1e-5)
+    parser.add_argument("--fp32", action="store_true", help="disable bf16 autocast")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--max-steps", type=int, default=None, help="smoke runs")
     args = parser.parse_args()
@@ -360,6 +363,7 @@ def main() -> None:
             lr_full=args.lr_full,
             seed=args.seed,
             max_steps=args.max_steps,
+            use_amp=not args.fp32,
         )
     )
     log.info("done; best val F1 %s", summary["best_val_f1"])
