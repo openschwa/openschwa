@@ -32,6 +32,9 @@ EPS = 1e-12
 L1_PRECISION_FLOOR = 0.8
 L1_MIN_POSITIVES = 5
 PRECISION_TARGET = 0.90
+#: Below this many train tokens the threshold sweep is not evidence of
+#: anything, and a calibration must never be committed from it.
+MIN_COMMIT_TRAIN = 200
 
 
 @dataclass
@@ -646,7 +649,7 @@ def evaluate_model(
         "status": status,
         "train_metrics": train_metrics,
         "test_metrics": test_metrics,
-        "test_auc": round(auc, 4) if not math.isnan(float(auc)) else None,
+        "test_auc": round(auc, 4) if auc is not None and not math.isnan(auc) else None,
         "per_l1": per_l1,
         "per_corpus": per_corpus,
         "alignment": alignment_stats(run.records),
@@ -657,6 +660,17 @@ def evaluate_model(
         "download_bytes": spec.download_bytes,
         "flagged_sample": flagged_sample(test, a, b, threshold, seed, best_variant),
     }
+
+    # A smoke run's handful of tokens can trivially pass the threshold sweep
+    # (flag nothing, precision 1.0); committing that would ship a meaningless
+    # calibration. The floor is deliberately conservative.
+    if commit_calibration and status == "ok" and len(train) < MIN_COMMIT_TRAIN:
+        log.error(
+            "NOT committing calibration: %d train tokens is below the %d floor (smoke run?)",
+            len(train),
+            MIN_COMMIT_TRAIN,
+        )
+        commit_calibration = False
 
     if commit_calibration and status == "ok":
         calibration = build_calibration(

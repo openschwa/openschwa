@@ -160,6 +160,9 @@ def main() -> None:
             )
 
     if winner is not None:
+        # Smoke runs (--limit) never commit: a handful of tokens cannot meet
+        # the bar in any meaningful sense. The full-run path also re-checks
+        # the train-token floor inside evaluate_model.
         evaluate_model(
             winner["model_id"],
             adapters,
@@ -169,10 +172,11 @@ def main() -> None:
             limit=args.limit,
             out_dir=out_dir,
             settings=settings,
-            commit_calibration=True,
+            commit_calibration=args.limit is None,
             run_tag=winner["run_tag"],
         )
-        log.info("committed calibration for %s", winner["model_id"])
+        if args.limit is None:
+            log.info("committed calibration for %s", winner["model_id"])
 
 
 if __name__ == "__main__":
