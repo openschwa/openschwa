@@ -37,6 +37,10 @@ floor), measures the held-out pool through the *shipped* code path, and
 writes <run>.md + <run>.json under reports/. The winner's calibration is
 committed to the engine's scoring/calibration.yaml **only when the bar is
 met**; a run that misses the bar commits nothing and says so in the report.
+Candidates whose manifest role is 'contrast' (e.g. the Option 3 fine-tuned
+judge dh-contrast-v1) are wired through the engine's dedicated
+contrast_model_id path: the default aligner keeps aligning, the candidate
+only scores the focus segment.
 
 Checkpointed: token-level results stream to reports/checkpoints/<run>.jsonl,
 so an interrupted run resumes instead of restarting. --limit N runs the
