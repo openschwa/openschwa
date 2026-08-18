@@ -108,7 +108,12 @@ def build_model(base_model_dir: Path, device: str):
 
 
 def collate(batch: list[tuple[np.ndarray, int]], device: str, max_samples: int):
-    """Pad a batch of (samples, label) to a tensor pair."""
+    """Pad a batch of (samples, label) to (audio, labels, lengths, mask).
+
+    The mask is load-bearing: our segments are 60-300 ms padded up to the
+    batch ceiling, and without an attention mask the transformer attends to
+    the padding - which is what the v1 GPU run was effectively training on.
+    """
     import torch  # noqa: PLC0415 - ml extra
 
     audio = []
@@ -120,7 +125,11 @@ def collate(batch: list[tuple[np.ndarray, int]], device: str, max_samples: int):
         labels.append(label)
         lengths.append(len(trimmed))
     padded = torch.nn.utils.rnn.pad_sequence(audio, batch_first=True).to(device)
-    return padded, torch.tensor(labels, dtype=torch.long, device=device), lengths
+    max_length = padded.shape[1]
+    mask = torch.arange(max_length, device=device).unsqueeze(0) < torch.tensor(
+        lengths, device=device
+    ).unsqueeze(1)
+    return padded, torch.tensor(labels, dtype=torch.long, device=device), lengths, mask
 
 
 def val_metrics(
@@ -141,8 +150,8 @@ def val_metrics(
         for start in range(0, len(val), options.batch_size):
             chunk = val[start : start + options.batch_size]
             batch = [(read_segment(data_dir, row), VOCAB[str(row["label"])]) for row in chunk]
-            audio, labels, _lengths = collate(batch, device, max_samples)
-            logits = model(audio).logits
+            audio, labels, _lengths, mask = collate(batch, device, max_samples)
+            logits = model(audio, attention_mask=mask).logits
             probs = torch.softmax(logits, dim=-1)
             # The non-blank class with the most total mass over frames.
             class_mass = probs[:, :, 2:].sum(dim=1)
@@ -244,12 +253,12 @@ def train(options: TrainOptions) -> dict[str, object]:
             batch = [
                 (read_segment(options.data_dir, row), VOCAB[str(row["label"])]) for row in chunk
             ]
-            audio, labels, lengths = collate(batch, device, max_samples)
+            audio, labels, _lengths, mask = collate(batch, device, max_samples)
             context = (
                 torch.autocast("cuda", dtype=torch.bfloat16) if device == "cuda" else nullcontext()
             )
             with context:
-                logits = model(audio).logits
+                logits = model(audio, attention_mask=mask).logits
             log_probs = F.log_softmax(logits.float(), dim=-1)  # CTC loss runs in fp32
             input_lengths = torch.tensor(
                 [logits.shape[1]] * len(labels), dtype=torch.long, device=device
