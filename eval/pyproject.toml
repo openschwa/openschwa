@@ -13,8 +13,11 @@ dependencies = [
 ]
 
 # Full runs need the acoustic model runtime; the fixture smoke suite does not.
+# torch/torchaudio are pinned in lockstep: the Debian 13 exam laptop runs
+# driver 550 (CUDA 12.4), which the 2.5.1 wheels match exactly (training/
+# pins the same pair for the same reason).
 [project.optional-dependencies]
-ml = ["openschwa-engine[ml]"]
+ml = ["openschwa-engine[ml]", "torch==2.5.1", "torchaudio==2.5.1"]
 
 [dependency-groups]
 dev = ["pytest>=8.2", "ruff>=0.6"]
