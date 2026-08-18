@@ -165,7 +165,11 @@ def test_max_per_class_caps_every_class(tmp_path):
     assert len(rows) == 4
 
 
-def test_exported_wavs_are_16k_mono(tmp_path):
+def test_exported_wavs_are_16k_mono_with_real_energy(tmp_path):
+    """The fixture audio is a sawtooth, so exported segments must carry real
+    energy: the int16 scale bug shipped silent training data once already."""
+    import numpy as np
+
     out = tmp_path / "out"
     export(ExportOptions(corpus(tmp_path, _train_stem()), out, val_fraction=0.0))
     rows = list(csv.DictReader((out / "labels.csv").open(encoding="utf-8")))
@@ -174,6 +178,8 @@ def test_exported_wavs_are_16k_mono(tmp_path):
         assert handle.getframerate() == 16_000
         assert handle.getnchannels() == 1
         assert handle.getnframes() > 0
+        frames = np.frombuffer(handle.readframes(handle.getnframes()), dtype="<i2")
+    assert float(np.abs(frames).mean()) > 100  # not silence
 
 
 def test_manifest_records_provenance(tmp_path):

@@ -93,7 +93,9 @@ def _write_segment_wav(path: Path, samples: np.ndarray) -> None:
         handle.setnchannels(1)
         handle.setsampwidth(2)
         handle.setframerate(MODEL_SAMPLE_RATE)
-        handle.writeframes(np.clip(samples, -1.0, 1.0).astype("<i2").tobytes())
+        # Scale before casting: float samples in [-1, 1] truncate to 0 as
+        # int16, which is exactly the silent-export bug the v1 runs trained on.
+        handle.writeframes((np.clip(samples, -1.0, 1.0) * 32767).astype("<i2").tobytes())
 
 
 def export(options: ExportOptions) -> dict[str, object]:
