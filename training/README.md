@@ -27,8 +27,10 @@ this Mac exports data and later runs the eval exam.
 uv run python -m openschwa_training.train \
     --data data/l2arctic-dh \
     --base-model ../.models/charsiu-en-w2v2-ctc \
-    --out runs/v1 --epochs 6 --freeze-epochs 2 --batch-size 32
+    --out runs/v1 --epochs 8 --freeze-epochs 4 --batch-size 32
 # resumable: re-run the same command after any interruption
+# watch the per-epoch val_f1: the frozen phase (epochs 0-3) should climb;
+# if the unfrozen phase collapses it, drop --epochs to 4 (head-only model)
 # overnight reruns: raise epochs / batch-size as VRAM allows (4060: 8 GB)
 ```
 
