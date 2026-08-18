@@ -143,13 +143,19 @@ def _load_contrast(
 
 
 def _focus_segment(audio: PreparedAudio, phone: AlignedPhone) -> np.ndarray:
-    """The focus phone's 16 kHz samples, with the training-time context pad."""
-    offset = audio.speech_offset_s
-    start = max(0.0, phone.start_s - offset - 0.05)
-    end = min(audio.speech_16k.size / 16_000, phone.end_s - offset + 0.05)
-    segment = audio.speech_16k[int(start * 16_000) : int(end * 16_000)]
+    """The focus phone's 16 kHz samples, with the training-time context pad.
+
+    Sliced from the raw resampled audio directly: the aligned phone times are
+    already in the upload timeline, so the VAD-trimmed region is an
+    unnecessary detour. It is also a harmful one: silero's trim boundaries
+    shift relative to what the judge was trained on (annotation intervals in
+    raw audio), and the v2 exam measured that gap as an AUC collapse
+    (0.74 -> 0.55)."""
+    start = max(0, int((phone.start_s - 0.05) * 16_000))
+    end = min(audio.samples_16k.size, int((phone.end_s + 0.05) * 16_000))
+    segment = audio.samples_16k[start:end]
     if segment.size == 0:
-        raise ValueError("focus interval lies outside the speech region")
+        raise ValueError("focus interval lies outside the audio")
     return segment
 
 
