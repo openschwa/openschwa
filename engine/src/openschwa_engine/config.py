@@ -56,6 +56,13 @@ class Settings(BaseSettings):
     #: detector; "silero"/"energy" force one path.
     vad_backend: str = "auto"
 
+    #: Dedicated contrast model (Option 3): a manifest id whose vocabulary is
+    #: exactly the drilled closed set. When set and downloaded, the focus
+    #: interval is scored by it rather than by the aligner's posteriors; when
+    #: unset or unavailable, the engine falls back to aligner-based contrast
+    #: scoring. Null means "use the alignment model" (the M0/M1 behavior).
+    contrast_model_id: str | None = None
+
     #: Load the acoustic model at startup rather than on the first recording.
     #: Disable in tests and tooling that never analyse audio.
     warm_model_on_start: bool = True

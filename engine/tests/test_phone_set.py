@@ -55,10 +55,11 @@ def test_blank_is_the_pad_token(phone_map):
 
 def test_script_g_is_not_ascii_g(phone_map):
     """U+0261 ɡ and ASCII g look identical in most fonts but are different
-    characters; the espeak vocabulary contains only the former."""
+    characters; the espeak vocabulary contains only the former. Models with a
+    closed-set-only vocabulary (dh-contrast-v1) never see either."""
     assert normalize("g") == "ɡ"
-    assert "ɡ" in phone_map.token_of
-    assert "g" not in phone_map.token_of
+    if "ɡ" in phone_map.token_of:
+        assert "g" not in phone_map.token_of
 
 
 def test_charsiu_required_phones_map_to_unique_tokens():

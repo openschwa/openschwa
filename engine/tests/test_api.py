@@ -69,6 +69,8 @@ def test_health_reports_versions_and_analysis_readiness(client):
 def test_models_are_pinned_to_a_commit_not_a_branch(client):
     """An upstream retrain must not silently change what learners are scored against."""
     for model in client.get("/v1/models").json()["models"]:
+        if model["revision"] == "local":
+            continue  # built locally by training/, not hub-pinned
         assert len(model["revision"]) == 40, f"{model['id']} is not pinned to a commit sha"
         assert model["state"] == "missing"
 

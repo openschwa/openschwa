@@ -12,8 +12,11 @@ or to honest silence, never to an HTTP 500 or an invented verdict.
 import logging
 from typing import Literal
 
+import numpy as np
+
 from openschwa_engine import __version__
 from openschwa_engine.alignment import AlignedPhone, AlignmentOutcome, acoustic, align_exercise
+from openschwa_engine.alignment.acoustic import AcousticModel
 from openschwa_engine.alignment.aligner import audio_problem
 from openschwa_engine.audio import PreparedAudio
 from openschwa_engine.config import Settings
@@ -49,12 +52,15 @@ def _matching_calibration(settings: Settings) -> Calibration | None:
     calibration = load_calibration()
     if calibration is None:
         return None
-    if calibration.model_id != settings.alignment_model:
+    # Verdicts are produced by the contrast model when one is configured; a
+    # calibration fitted for anything else must never be applied.
+    scoring_model = settings.contrast_model_id or settings.alignment_model
+    if calibration.model_id != scoring_model:
         log.error(
-            "calibration.yaml was fitted for model '%s' but the engine runs '%s' - "
+            "calibration.yaml was fitted for model '%s' but the engine scores with '%s' - "
             "refusing to judge with another model's thresholds",
             calibration.model_id,
-            settings.alignment_model,
+            scoring_model,
         )
         return None
     return calibration
@@ -110,6 +116,43 @@ def _run_alignment(
     )
 
 
+def _load_contrast(
+    registry: ModelRegistry, settings: Settings
+) -> tuple[AcousticModel, PhoneMap] | None:
+    """The dedicated closed-set contrast judge, or None to use the aligner.
+
+    The Option 3 model's vocabulary is exactly {blank, ð, z, d, v}: it cannot
+    align, so it only ever scores the focus segment. When it is not configured
+    or not downloaded, the engine degrades to aligner-based contrast scoring
+    (the M0/M1 path) rather than failing.
+    """
+    if settings.contrast_model_id is None:
+        return None
+    try:
+        spec = registry.spec(settings.contrast_model_id)
+        model_dir = registry.require_ready(spec)
+        phone_map = registry.phone_map(spec)
+        return acoustic.load(model_dir), phone_map
+    except ModelError as exc:
+        log.warning(
+            "contrast model '%s' unavailable (%s) - using aligner-based contrast",
+            settings.contrast_model_id,
+            exc,
+        )
+        return None
+
+
+def _focus_segment(audio: PreparedAudio, phone: AlignedPhone) -> np.ndarray:
+    """The focus phone's 16 kHz samples, with the training-time context pad."""
+    offset = audio.speech_offset_s
+    start = max(0.0, phone.start_s - offset - 0.05)
+    end = min(audio.speech_16k.size / 16_000, phone.end_s - offset + 0.05)
+    segment = audio.speech_16k[int(start * 16_000) : int(end * 16_000)]
+    if segment.size == 0:
+        raise ValueError("focus interval lies outside the speech region")
+    return segment
+
+
 def _words(exercise: Exercise, outcome: AlignmentOutcome) -> list[Word]:
     """M0 emits one word spanning the utterance; real word segmentation needs
     per-word phone grouping, which the exercise schema does not carry yet."""
@@ -126,12 +169,19 @@ def _words(exercise: Exercise, outcome: AlignmentOutcome) -> list[Word]:
 
 
 def _contrasts(
+    audio: PreparedAudio,
     exercise: Exercise,
     outcome: AlignmentOutcome,
     phone_map: PhoneMap | None,
     calibration: Calibration | None,
+    contrast: tuple[AcousticModel, PhoneMap] | None = None,
 ) -> list[ContrastResult]:
     """Closed-set contrast evidence for the focus phone (M1).
+
+    With a dedicated contrast model (Option 3) the focus SEGMENT is scored by
+    it - its vocabulary is exactly the closed set, so every frame is in-set
+    and the renormalization is over its whole alphabet. Without one, the
+    aligner's posteriors over the forced label frames are scored instead.
 
     The raw posteriors always come back - they are evidence, like the phone
     timeline. The verdict needs the committed calibration; without it the
@@ -142,21 +192,36 @@ def _contrasts(
     if outcome.status != "ok":
         return []
     focus = exercise.focus_phone
-    if focus is None or phone_map is None or outcome.posteriors is None:
+    if focus is None or (phone_map is None and contrast is None):
         return []
     phone = next((p for p in outcome.phones if p.index == focus.index), None)
-    if phone is None or not phone.frame_indices:
+    if phone is None:
         log.warning("focus phone /%s/ is missing from the alignment - no contrast", focus.ph)
         return []
 
     try:
-        raw = score_contrast(
-            outcome.posteriors.log_probs,
-            phone.frame_indices,
-            focus.ph,
-            focus.confusions,
-            phone_map,
-        )
+        if contrast is not None:
+            contrast_model, contrast_map = contrast
+            segment = _focus_segment(audio, phone)
+            posteriors = contrast_model.posteriors(segment)
+            raw = score_contrast(
+                posteriors.log_probs,
+                np.arange(posteriors.frames, dtype=np.int64),
+                focus.ph,
+                focus.confusions,
+                contrast_map,
+            )
+        else:
+            if phone_map is None or outcome.posteriors is None or not phone.frame_indices:
+                log.warning("focus phone /%s/ has no aligner frames - no contrast", focus.ph)
+                return []
+            raw = score_contrast(
+                outcome.posteriors.log_probs,
+                phone.frame_indices,
+                focus.ph,
+                focus.confusions,
+                phone_map,
+            )
     except (ValueError, PhoneSetError) as exc:
         log.error("contrast scoring failed for /%s/: %s", focus.ph, exc)
         return []
@@ -236,7 +301,8 @@ def analyze_recording(
         else None
     )
 
-    contrasts = _contrasts(exercise, outcome, phone_map, calibration)
+    contrast = _load_contrast(registry, settings)
+    contrasts = _contrasts(audio, exercise, outcome, phone_map, calibration, contrast)
 
     return AnalysisResult(
         schema_version=SCHEMA_VERSION,  # type: ignore[arg-type]

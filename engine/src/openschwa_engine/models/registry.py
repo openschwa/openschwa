@@ -30,8 +30,14 @@ log = logging.getLogger(__name__)
 
 VOCAB_DIR = Path(__file__).parent / "vocab"
 
-#: Files that must be present for a model to count as downloaded.
+#: Files pulled from the hub for a model to count as downloaded. Weights
+#: specifically accept both serializations (see WEIGHT_FILES): transformers 5.x
+#: saves model.safetensors by default, and the Option 3 fine-tune uses it.
 REQUIRED_FILES = ("config.json", "preprocessor_config.json", "pytorch_model.bin", "vocab.json")
+
+#: Either weight format satisfies is_ready(); the rest of REQUIRED_FILES must
+#: all be present.
+WEIGHT_FILES = ("pytorch_model.bin", "model.safetensors")
 
 
 class ModelError(RuntimeError):
@@ -51,6 +57,10 @@ class ModelSpec:
     #: Files the HF repo does not ship but the runtime needs, as
     #: (local filename, committed source under models/vocab/). Copied after pull.
     extra_files: tuple[tuple[str, str], ...] = ()
+    #: "aligner" models carry the full phone inventory and align exercises;
+    #: "contrast" models are closed-set judges (Option 3) and only ever score
+    #: the focus interval - the pipeline never aligns with them.
+    role: str = "aligner"
 
 
 MANIFEST: Mapping[str, ModelSpec] = MappingProxyType(
@@ -91,6 +101,26 @@ MANIFEST: Mapping[str, ModelSpec] = MappingProxyType(
                 ("vocab.json", "charsiu-en-w2v2-ctc.json"),
             ),
         ),
+        # The Option 3 contrast judge: fine-tuned locally (training/) from the
+        # charsiu base. Its weights never live on a hub - the training run's
+        # out/model/ directory is dropped into the model dir wholesale, and
+        # is_ready() validates the layout. pull() refuses with instructions.
+        "dh-contrast-v1": ModelSpec(
+            id="dh-contrast-v1",
+            repo_id="local",
+            revision="local",
+            phone_table="dhz_en",
+            vocab_snapshot="dh-contrast-v1.json",
+            download_bytes=0,
+            license="Apache-2.0 (fine-tuned locally from the charsiu base)",
+            note=(
+                "Option 3 closed-set judge for /ð/ vs {z, d, v}: a charsiu-base "
+                "wav2vec2 with a fresh 4-class CTC head, fine-tuned on the "
+                "L2-ARCTIC train split (training/). Vocabulary is exactly "
+                "{blank, ð, z, d, v} - it cannot align, only judge."
+            ),
+            role="contrast",
+        ),
     }
 )
 
@@ -128,7 +158,10 @@ class ModelRegistry:
 
     def is_ready(self, spec: ModelSpec) -> bool:
         base = self.local_dir(spec)
-        return all((base / name).is_file() for name in REQUIRED_FILES)
+        fixed = [name for name in REQUIRED_FILES if name not in WEIGHT_FILES]
+        return all((base / name).is_file() for name in fixed) and any(
+            (base / name).is_file() for name in WEIGHT_FILES
+        )
 
     def status(self, spec: ModelSpec) -> ModelStatus:
         with self._lock:
@@ -210,6 +243,11 @@ class ModelRegistry:
                 self._downloading.discard(spec.id)
 
     def _pull(self, spec: ModelSpec) -> Iterator[dict[str, Any]]:
+        if spec.repo_id == "local":
+            raise ModelError(
+                f"model '{spec.id}' is built locally (training/) - copy the training "
+                f"run's out/model/ directory to {self.local_dir(spec)} and restart"
+            )
         from huggingface_hub import snapshot_download  # noqa: PLC0415 - lazy `ml` extra
         from tqdm.auto import tqdm as base_tqdm  # noqa: PLC0415 - lazy `ml` extra
 

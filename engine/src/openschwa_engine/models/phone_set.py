@@ -243,9 +243,17 @@ CHARSIU_EN: Mapping[str, str] = MappingProxyType(
     }
 )
 
+#: Canonical -> token for the Option 3 contrast judge (dh-contrast-v1). Its
+#: vocabulary is exactly {blank, unk, ð, z, d, v}, so only the drilled set maps.
+DHZ_EN: Mapping[str, str] = MappingProxyType({"ð": "ð", "z": "z", "d": "d", "v": "v"})
+
 #: Table name -> mapping. registry.MANIFEST names one of these per model.
 TABLES: Mapping[str, Mapping[str, str]] = MappingProxyType(
-    {"espeak_en": ESPEAK_EN, "charsiu_en": CHARSIU_EN}
+    {
+        "espeak_en": ESPEAK_EN,
+        "charsiu_en": CHARSIU_EN,
+        "dhz_en": DHZ_EN,
+    }
 )
 
 #: The phones a model is allowed to *discriminate*: its tokens for these must
@@ -254,6 +262,7 @@ REQUIRED: Mapping[str, frozenset[str]] = MappingProxyType(
     {
         "espeak_en": CANONICAL_EN,
         "charsiu_en": frozenset({"ð", "z", "d", "v"}),
+        "dhz_en": frozenset({"ð", "z", "d", "v"}),
     }
 )
 

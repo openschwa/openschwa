@@ -555,10 +555,14 @@ def evaluate_model(
 
     checkpoint = out_dir / "checkpoints" / f"{run_tag}.jsonl"
     checkpoint.parent.mkdir(parents=True, exist_ok=True)
-    # analyze_recording picks the model from settings.alignment_model - the
-    # harness must point it at THIS candidate, or every bake-off run would
-    # silently measure the engine default instead.
-    run_settings = settings.model_copy(update={"alignment_model": model_id})
+    # analyze_recording picks the model from settings: aligner candidates ride
+    # alignment_model; closed-set contrast candidates (Option 3, role=contrast)
+    # ride contrast_model_id while the default aligner keeps aligning. The
+    # wrong wiring would silently measure the engine default instead.
+    if spec.role == "contrast":
+        run_settings = settings.model_copy(update={"contrast_model_id": model_id})
+    else:
+        run_settings = settings.model_copy(update={"alignment_model": model_id})
     run = run_tokens(triples, registry, run_settings, target, checkpoint=checkpoint)
 
     train = [r for r in run.records if r.split == "train"]
