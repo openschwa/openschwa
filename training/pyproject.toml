@@ -1,0 +1,36 @@
+[project]
+name = "openschwa-training"
+version = "0.1.0"
+description = "OpenSchwa contrast fine-tuning: segment export + training scripts (Option 3)"
+requires-python = ">=3.11"
+dependencies = [
+    "openschwa-engine",
+    "openschwa-eval",
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+ml = ["openschwa-engine[ml]"]
+
+[dependency-groups]
+dev = ["pytest>=8.2", "ruff>=0.6"]
+
+[tool.uv.sources]
+openschwa-engine = { path = "../engine", editable = true }
+openschwa-eval = { path = "../eval", editable = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/openschwa_training"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

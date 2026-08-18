@@ -1,0 +1,3 @@
+# Corpus-derived training data: audio segments, labels, manifests.
+# Never committed - they derive from L2-ARCTIC (CC BY-NC 4.0).
+data/
