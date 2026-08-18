@@ -126,7 +126,11 @@ def collate(batch: list[tuple[np.ndarray, int]], device: str, max_samples: int):
 def val_metrics(
     model, val: list[dict[str, object]], data_dir: Path, options: TrainOptions, device: str
 ):
-    """Per-class accuracy + macro F1 over the val split."""
+    """Per-class accuracy + macro F1 over the val split.
+
+    Batched: the per-row loop was the dominant CPU cost (one forward pass per
+    ~100 ms segment), and batching cuts val time roughly 10x.
+    """
     import torch  # noqa: PLC0415 - ml extra
 
     model.eval()
@@ -134,16 +138,16 @@ def val_metrics(
     predicted: list[int] = []
     max_samples = int(options.max_segment_s * 16_000)
     with torch.inference_mode():
-        for row in val:
-            samples = read_segment(data_dir, row)
-            label = VOCAB[str(row["label"])]
-            audio = torch.from_numpy(samples[:max_samples]).float().unsqueeze(0).to(device)
-            logits = model(audio).logits[0]
+        for start in range(0, len(val), options.batch_size):
+            chunk = val[start : start + options.batch_size]
+            batch = [(read_segment(data_dir, row), VOCAB[str(row["label"])]) for row in chunk]
+            audio, labels, _lengths = collate(batch, device, max_samples)
+            logits = model(audio).logits
             probs = torch.softmax(logits, dim=-1)
             # The non-blank class with the most total mass over frames.
-            class_mass = probs[:, 2:].sum(dim=0)
-            expected.append(label - 2)
-            predicted.append(int(torch.argmax(class_mass).item()))
+            class_mass = probs[:, :, 2:].sum(dim=1)
+            expected.extend(int(label.item()) - 2 for label in labels)
+            predicted.extend(int(value.item()) for value in torch.argmax(class_mass, dim=1))
     per_class = {}
     for name, index in [(phone, i) for i, phone in enumerate(ALPHABET)]:
         hits = sum(1 for e, p in zip(expected, predicted, strict=True) if p == index and e == index)
