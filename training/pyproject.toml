@@ -10,7 +10,16 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-ml = ["openschwa-engine[ml]"]
+ml = [
+    "openschwa-engine[ml]",
+    # The training laptop is Debian 13 with driver 550 / CUDA 12.4. The PyPI
+    # torch wheels for 2.5.1 bundle CUDA 12.4; anything newer (2.6+) bundles
+    # 12.6/12.8+ and demands a driver >= 570. This pin keeps GPU training
+    # working without system driver changes. torchaudio tracks torch's ABI,
+    # so it is pinned in lockstep (silero-vad pulls it in).
+    "torch==2.5.1",
+    "torchaudio==2.5.1",
+]
 
 [dependency-groups]
 dev = ["pytest>=8.2", "ruff>=0.6"]
