@@ -119,6 +119,14 @@ class TrainOptions:
     use_amp: bool = True  # bf16 autocast on CUDA; disable for fp32 experiments
     label_smoothing: float = 0.05
     target_boost: float = 1.0
+    #: Repeat every hard-negative row this many times in the train pool: the
+    #: precision wall is made of exactly these tokens, and the balanced
+    #: sampler's per-class weight alone underserves them.
+    hardneg_mult: int = 1
+    #: Speed/noise augmentation of non-target (error) segments: the recall
+    #: wall is error-confidence starvation, and the error classes are the
+    #: smallest pools we have.
+    augment: bool = False
 
 
 def load_dataset(data_dirs: list[Path]) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
@@ -149,6 +157,31 @@ def read_segment_and_features(row: dict[str, object]) -> tuple[np.ndarray, np.nd
         )
     features = extract_acoustic_features(samples)
     return samples, features
+
+
+def augment_segment(samples: np.ndarray, rng: random.Random) -> np.ndarray:
+    """Speed-stretch and/or noise a segment; the length is preserved.
+
+    Fricatives survive mild resampling stretch and noise, which is the point:
+    the error classes (z/d/v) are the smallest pools, and their acoustic
+    variety is exactly what the recall wall is missing.
+    """
+    samples = samples.copy()
+    if rng.random() < 0.6:  # speed stretch, 0.9x-1.1x
+        factor = rng.uniform(0.9, 1.1)
+        n = len(samples)
+        stretched = np.interp(np.linspace(0, n - 1, int(n / factor)), np.arange(n), samples)
+        samples = (
+            stretched[:n]
+            if stretched.size >= n
+            else np.pad(stretched, (0, n - stretched.size))
+        )
+    if rng.random() < 0.6:  # gaussian noise at 15-30 dB SNR
+        signal_rms = float(np.sqrt(np.mean(samples**2) + 1e-9))
+        noise_rms = signal_rms / (10 ** (rng.uniform(15.0, 30.0) / 20.0))
+        noise = np.array([rng.gauss(0.0, noise_rms) for _ in range(samples.size)])
+        samples = samples + noise.reshape(samples.shape)
+    return samples.astype(np.float32)
 
 
 def class_weight(train: list[dict[str, object]], target_boost: float = 1.0) -> list[float]:
@@ -276,6 +309,10 @@ def train(options: TrainOptions) -> dict[str, object]:
     log.info("device: %s", device)
 
     train_rows, val_rows = load_dataset(options.data_dirs)
+    if options.hardneg_mult > 1:
+        hard = [row for row in train_rows if "hardneg" in str(row["_source"])]
+        train_rows = train_rows + hard * (options.hardneg_mult - 1)
+        log.info("hard negatives x%d (%d rows)", options.hardneg_mult, len(hard))
     weights = class_weight(train_rows, target_boost=options.target_boost)
     weights_tensor = torch.tensor(weights, dtype=torch.float32, device=device)
     max_samples = int(options.max_segment_s * 16_000)
@@ -308,9 +345,13 @@ def train(options: TrainOptions) -> dict[str, object]:
         total_loss = 0.0
         processed = 0
         for chunk in balanced_batches(train_rows, options.batch_size, rng):
-            batch = [
-                (*read_segment_and_features(row), VOCAB[str(row["label"])]) for row in chunk
-            ]
+            batch = []
+            for row in chunk:
+                samples, feats = read_segment_and_features(row)
+                if options.augment and str(row["label"]) != "ð" and rng.random() < 0.5:
+                    samples = augment_segment(samples, rng)
+                    feats = extract_acoustic_features(samples)
+                batch.append((samples, feats, VOCAB[str(row["label"])]))
             audio, dsp_feats, labels, _lengths, mask = collate(batch, device, max_samples)
             context = (
                 torch.autocast("cuda", dtype=torch.bfloat16)
@@ -414,6 +455,14 @@ def main() -> None:
     #: passes --label-smoothing 0.
     parser.add_argument("--label-smoothing", type=float, default=0.05)
     parser.add_argument("--fp32", action="store_true", help="disable bf16 autocast")
+    parser.add_argument(
+        "--hardneg-mult", type=int, default=1, help="repeat hard-negative rows N times"
+    )
+    parser.add_argument(
+        "--augment",
+        action="store_true",
+        help="speed/noise augmentation of error segments",
+    )
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--max-steps", type=int, default=None, help="smoke runs")
     args = parser.parse_args()
@@ -430,6 +479,8 @@ def main() -> None:
             lr_full=args.lr_full,
             target_boost=args.target_boost,
             label_smoothing=args.label_smoothing,
+            hardneg_mult=args.hardneg_mult,
+            augment=args.augment,
             seed=args.seed,
             max_steps=args.max_steps,
             use_amp=not args.fp32,
