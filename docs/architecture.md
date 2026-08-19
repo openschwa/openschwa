@@ -219,6 +219,24 @@ load. First pack: `en-dh-z` (/ð/ → /z/).
   357 ms median), and became the default aligner. Evidence:
   eval/reports/m1-bakeoff-2026-08-18-*.md. **Accept criterion NOT met —
   recorded, not waived.**
+- **Option 3 — fine-tuned 4-class {ð,z,d,v} judge. ✅ Done, negative result.**
+  Trained Wav2Vec2ForCTC from the charsiu base on the user's RTX 4060 laptop:
+  8,177 L2-ARCTIC train-split segments + speechocean762 train segments (capped
+  at 700 to keep the Mandarin share balanced), frozen head then full
+  fine-tune, v1→v4 iterations, integrated as `dh-contrast-v1` (role=contrast).
+  Two real bugs were found and fixed along the way: an export that wrote
+  silent segments (int16 scaling), and — the one that invalidated every early
+  exam — **CTC blank dominance in the exam scoring**: the judge emits ~95%
+  blank frames, and the old per-frame closed-set renormalization gave each
+  blank frame's dust a full vote, collapsing the exam to chance (AUC 0.51)
+  while training-time validation (mass aggregation) read 0.81. Fixed in
+  `6c27a3b` (mass-weighted aggregation). The honest v4 verdict against the
+  accent-agnostic bar (one threshold for every learner): held-out pooled AUC
+  **0.679** (l2arctic errors 0.648; per-L1 0.53–0.79), best operating point
+  precision 1.0 at recall **0.0017** — the bar (**precision ≥ 0.90 at recall
+  ≥ 0.4**) is not met. Per policy no calibration was committed and no
+  verdicts ship; the engine stays retry-only. Evidence: eval/reports-v4/.
+  **Accept criterion NOT met — recorded, not waived.**
 - **M2 — intonation.** Contour overlay + DTW + nuclear tone
   ("please." / "please?" / "please!"). Accept: ≥ 90% fall-vs-rise on a
   purpose-recorded ~100-utterance set; octave errors < 2% of voiced frames.
@@ -245,7 +263,7 @@ all. It is the authority; everywhere else in this repo cites it.
 | Risk | Mitigation |
 |---|---|
 | Model accuracy on strong accents, child voices, laptop mics | Confidence gating; retry over wrong verdicts; per-L1 fairness audit in the eval report (informational, never a gate); closed-set scoring |
-| CTC peakiness undermines interval GOP | Measured in the M1 bake-off: mean/spike/vote/GOP all sit near chance on /ð/ (AUC ≤ 0.59 held-out) — the bottleneck is the model's discrimination, not the aggregation; see eval/reports/ |
+| CTC peakiness undermines interval GOP | Measured twice: the M1 bake-off (all aggregations near chance on /ð/, AUC ≤ 0.59) and the Option 3 judge, where blank-dominant CTC outputs plus per-frame renormalization collapsed the exam to chance until mass-weighted aggregation shipped (6c27a3b); see eval/reports/ and eval/reports-v4/ |
 | Phone-set mapping bugs silently corrupt verdicts | One canonical IPA inventory; per-model tables; round-trip tests |
 | PyInstaller + torch bundle (~0.5–1 GB, notarization, SmartScreen) | **Spike done**: 590 MB unsigned bundle works. Signing/notarization still M4; ONNX Runtime fallback still pre-planned if size bites |
 | Formant tracking unreliable (high F0 voices) | Supporting evidence only; own reliability gate; never the basis of a vowel verdict |

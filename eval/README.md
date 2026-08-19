@@ -42,7 +42,9 @@ met**; a run that misses the bar commits nothing and says so in the report.
 Candidates whose manifest role is 'contrast' (e.g. the Option 3 fine-tuned
 judge dh-contrast-v1) are wired through the engine's dedicated
 contrast_model_id path: the default aligner keeps aligning, the candidate
-only scores the focus segment.
+only scores the focus segment. The Option 3 exam lives in reports-v4/ (a
+separate directory because its run tag collided with the earlier bake-off —
+the laptop clock had not rolled over); verdict there: negative, bar not met.
 
 Checkpointed: token-level results stream to reports/checkpoints/<run>.jsonl,
 so an interrupted run resumes instead of restarting. --limit N runs the
