@@ -76,7 +76,13 @@ def score_contrast(
     shifted = logp - logp.max(axis=1, keepdims=True)
     probs = np.exp(shifted)
     probs /= probs.sum(axis=1, keepdims=True)
-    mean = probs.mean(axis=0)
+    # The mean aggregates MASS, not frame votes: CTC outputs are blank-dominant
+    # (a 250 ms segment is ~95% blank frames), and renormalizing per frame
+    # before averaging gives every blank frame's dust a full vote - the v4
+    # exam measured that as an AUC collapse to chance. Mass weighting is also
+    # what the training-time validation measured, so the exam finally scores
+    # the model on the same aggregation it was selected on.
+    mean = np.exp(logp).mean(axis=0)
     mean /= mean.sum() + EPS  # numerical dust back into the normalization
 
     names = [target, *confusions]

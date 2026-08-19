@@ -66,6 +66,26 @@ def test_mass_moves_with_the_evidence():
     assert result.score == pytest.approx(0.0, abs=1e-4)
 
 
+def test_blank_frames_do_not_outvote_the_evidence():
+    """CTC is blank-dominant: ten frames of 99% blank + 1% /ð/ dust must not
+    outweigh one frame of real /z/ evidence. The v4 exam regressed to chance
+    exactly because the old per-frame renormalization gave every blank
+    frame's dust a full vote; mass weighting fixes it."""
+    probs = np.zeros((11, 6))
+    probs[:10, 0] = 0.99  # blank
+    probs[:10, 1] = 0.01  # ð dust (map: ð=1)
+    probs[10, 0] = 0.009  # blank
+    probs[10, 1] = 0.001  # ð dust
+    probs[10, 2] = 0.5  # z (map: z=2)
+    probs[10, 3] = 0.49  # d (map: d=3)
+    raw = np.log(probs).astype(np.float32)
+    result = score_contrast(raw, np.arange(11), "ð", ["z", "d", "v"], phone_map())
+    assert result.posteriors["z"] > result.posteriors["ð"]
+    assert result.posteriors["z"] == pytest.approx(0.5 / 1.091, abs=1e-3)
+    assert result.posteriors["ð"] == pytest.approx(0.101 / 1.091, abs=1e-3)
+    assert result.best_confusion == "z"
+
+
 def test_non_target_mass_is_ignored():
     """Posterior mass on tokens outside {target} + confusions must not leak in."""
     probs = np.full((4, 6), 1e-6)
