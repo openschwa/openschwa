@@ -21,6 +21,9 @@ class PhoneToken:
     end_s: float | None = None
     label: str = "correct"  # correct | substituted | deleted
     substituted_with: str | None = None  # canonical IPA, when substituted
+    #: How many of speechocean762's five experts marked this token as an
+    #: error. None for corpora without per-token expert votes.
+    expert_error_votes: int | None = None
 
 
 @dataclass(frozen=True)

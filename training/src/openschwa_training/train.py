@@ -36,7 +36,7 @@ VOCAB = {"[PAD]": 0, "[UNK]": 1, **{phone: i + 2 for i, phone in enumerate(ALPHA
 
 @dataclass(frozen=True)
 class TrainOptions:
-    data_dir: Path  # the export dir: labels.csv + audio/
+    data_dirs: list[Path]  # export dirs to merge: labels.csv + audio/ each
     base_model_dir: Path  # assembled charsiu dir (config/preprocessor/weights/vocab)
     out_dir: Path
     epochs: int = 8
@@ -50,21 +50,26 @@ class TrainOptions:
     use_amp: bool = True  # bf16 autocast on CUDA; disable for fp32 experiments
 
 
-def load_dataset(data_dir: Path) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
-    rows = list(csv.DictReader((data_dir / "labels.csv").open(encoding="utf-8")))
+def load_dataset(data_dirs: list[Path]) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+    """Merge every export dir's labels.csv; each row remembers its source."""
+    rows: list[dict[str, object]] = []
+    for data_dir in data_dirs:
+        for row in csv.DictReader((data_dir / "labels.csv").open(encoding="utf-8")):
+            row["_source"] = str(data_dir)
+            rows.append(row)
     train = [row for row in rows if row["split"] == "train"]
     val = [row for row in rows if row["split"] == "val"]
     if not train or not val:
         raise ValueError(
-            f"{data_dir}/labels.csv needs both train and val rows, got "
-            f"{len(train)}/{len(val)} - re-run export.py without --val-fraction 0"
+            f"{[str(d) for d in data_dirs]} needs both train and val rows, got "
+            f"{len(train)}/{len(val)} - re-run the exports without --val-fraction 0"
         )
     return train, val
 
 
-def read_segment(data_dir: Path, row: dict[str, object]) -> np.ndarray:
+def read_segment(row: dict[str, object]) -> np.ndarray:
     """16 kHz float32 samples for one segment, padded to the ceiling length."""
-    with wave.open(str(data_dir / row["filename"]), "rb") as handle:
+    with wave.open(str(Path(row["_source"]) / row["filename"]), "rb") as handle:
         assert handle.getframerate() == 16_000, row["filename"]
         assert handle.getnchannels() == 1, row["filename"]
         samples = (
@@ -132,9 +137,7 @@ def collate(batch: list[tuple[np.ndarray, int]], device: str, max_samples: int):
     return padded, torch.tensor(labels, dtype=torch.long, device=device), lengths, mask
 
 
-def val_metrics(
-    model, val: list[dict[str, object]], data_dir: Path, options: TrainOptions, device: str
-):
+def val_metrics(model, val: list[dict[str, object]], options: TrainOptions, device: str):
     """Per-class accuracy + macro F1 over the val split.
 
     Batched: the per-row loop was the dominant CPU cost (one forward pass per
@@ -149,7 +152,7 @@ def val_metrics(
     with torch.inference_mode():
         for start in range(0, len(val), options.batch_size):
             chunk = val[start : start + options.batch_size]
-            batch = [(read_segment(data_dir, row), VOCAB[str(row["label"])]) for row in chunk]
+            batch = [(read_segment(row), VOCAB[str(row["label"])]) for row in chunk]
             audio, labels, _lengths, mask = collate(batch, device, max_samples)
             logits = model(audio, attention_mask=mask).logits
             probs = torch.softmax(logits, dim=-1)
@@ -217,7 +220,7 @@ def train(options: TrainOptions) -> dict[str, object]:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     log.info("device: %s", device)
 
-    train_rows, val_rows = load_dataset(options.data_dir)
+    train_rows, val_rows = load_dataset(options.data_dirs)
     weights = class_weight(train_rows)
     weights_tensor = torch.tensor(weights, dtype=torch.float32, device=device)
     max_samples = int(options.max_segment_s * 16_000)
@@ -250,9 +253,7 @@ def train(options: TrainOptions) -> dict[str, object]:
         total_loss = 0.0
         processed = 0
         for chunk in balanced_batches(train_rows, options.batch_size, rng):
-            batch = [
-                (read_segment(options.data_dir, row), VOCAB[str(row["label"])]) for row in chunk
-            ]
+            batch = [(read_segment(row), VOCAB[str(row["label"])]) for row in chunk]
             audio, labels, _lengths, mask = collate(batch, device, max_samples)
             context = (
                 torch.autocast("cuda", dtype=torch.bfloat16)
@@ -286,7 +287,7 @@ def train(options: TrainOptions) -> dict[str, object]:
             step += 1
             if options.max_steps is not None and step >= options.max_steps:
                 break
-        accuracy, f1, per_class = val_metrics(model, val_rows, options.data_dir, options, device)
+        accuracy, f1, per_class = val_metrics(model, val_rows, options, device)
         history.append(
             {
                 "epoch": epoch,
@@ -338,7 +339,12 @@ def export_model(model, out_dir: Path, base_model_dir: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--data", required=True, help="export dir with labels.csv + audio/")
+    parser.add_argument(
+        "--data",
+        required=True,
+        action="append",
+        help="export dir with labels.csv + audio/ (repeat to merge datasets)",
+    )
     parser.add_argument("--base-model", required=True, help="assembled charsiu model dir")
     parser.add_argument("--out", required=True, help="checkpoints + final model dir")
     parser.add_argument("--epochs", type=int, default=8)
@@ -353,7 +359,7 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     summary = train(
         TrainOptions(
-            data_dir=Path(args.data),
+            data_dirs=[Path(d) for d in args.data],
             base_model_dir=Path(args.base_model),
             out_dir=Path(args.out),
             epochs=args.epochs,

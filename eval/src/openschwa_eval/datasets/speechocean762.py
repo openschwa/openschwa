@@ -114,6 +114,7 @@ class SpeechOcean762(DatasetAdapter):
                         phone=canonical,
                         label="substituted" if is_error else "correct",
                         substituted_with=None,
+                        expert_error_votes=error_votes,
                     )
                 )
                 if canonical == target_phone:

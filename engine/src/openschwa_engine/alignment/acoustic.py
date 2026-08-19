@@ -57,10 +57,20 @@ class AcousticModel:
             ) from exc
 
         self._torch = torch
-        log.info("loading acoustic model from %s", model_dir)
+        # CUDA when the machine has it: the eval harness and the training
+        # exporters run the same engine code, and the laptop's GPU turns the
+        # multi-hour corpus passes into minutes. Everything downstream stays
+        # numpy on the CPU - only the forward pass moves.
+        self._cuda = torch.cuda.is_available()
+        log.info("loading acoustic model from %s (cuda=%s)", model_dir, self._cuda)
         self._extractor = Wav2Vec2FeatureExtractor.from_pretrained(str(model_dir))
-        self._model = Wav2Vec2ForCTC.from_pretrained(str(model_dir))
+        # Any: transformers' wrapped __call__ defeats the inferred type once
+        # .cuda() reassigns the module, and mypy then rejects the forward call.
+        self._model: Any = Wav2Vec2ForCTC.from_pretrained(str(model_dir))
         self._model.eval()
+        if self._cuda:
+            # mypy misreads transformers' wrapped .cuda as a __call__.
+            self._model = self._model.cuda()  # type: ignore[call-arg]
         self.vocab_size = int(self._model.config.vocab_size or 0)
 
     def posteriors(self, samples_16k: npt.NDArray[np.float32]) -> Posteriors:
@@ -74,6 +84,9 @@ class AcousticModel:
             return_tensors="pt",
             return_attention_mask=True,
         )
+        if self._cuda:
+            inputs["input_values"] = inputs["input_values"].cuda()
+            inputs["attention_mask"] = inputs["attention_mask"].cuda()
         with torch.inference_mode():
             logits = self._model(inputs.input_values, attention_mask=inputs.attention_mask).logits[
                 0

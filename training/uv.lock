@@ -757,6 +757,8 @@ requires-dist = [
     { name = "openschwa-engine", extras = ["ml"], marker = "extra == 'ml'", editable = "../engine" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "scipy", specifier = ">=1.11" },
+    { name = "torch", marker = "extra == 'ml'", specifier = "==2.5.1" },
+    { name = "torchaudio", marker = "extra == 'ml'", specifier = "==2.5.1" },
 ]
 provides-extras = ["ml"]
 

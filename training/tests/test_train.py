@@ -109,7 +109,7 @@ def test_smoke_training_runs_end_to_end(tmp_path):
     out = tmp_path / "out"
     summary = train(
         TrainOptions(
-            data_dir=data,
+            data_dirs=[data],
             base_model_dir=base,
             out_dir=out,
             epochs=2,
