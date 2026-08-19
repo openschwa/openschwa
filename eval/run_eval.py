@@ -84,6 +84,14 @@ def main() -> None:
         help="bake-off candidate model id; repeatable; default: the engine's alignment_model",
     )
     parser.add_argument("--out", default="reports/")
+    parser.add_argument(
+        "--commit",
+        action="store_true",
+        help=(
+            "write calibration.yaml when the bar is met (the only sanctioned "
+            "writer of that file besides the harness itself)"
+        ),
+    )
     parser.add_argument("--limit", type=int, help="max labeled utterances processed (smoke runs)")
     parser.add_argument("--split-seed", type=int, default=42)
     args = parser.parse_args()
@@ -128,7 +136,9 @@ def main() -> None:
             limit=args.limit,
             out_dir=out_dir,
             settings=settings,
-            commit_calibration=False,
+            # A smoke run must never commit: the harness enforces this, but
+            # refuse here too so the flag cannot sneak a bad file in.
+            commit_calibration=args.commit and args.limit is None,
             run_tag=run_tag,
         )
         summaries.append(summary)
