@@ -39,17 +39,26 @@ class HardNegOptions:
     out_dir: Path
     model_dir: Path | None = None
     top_k: int = 200
+    l1: str | None = None  # mine only this language group (e.g. "mandarin")
     pad_s: float = PAD_S
 
 
-def select_hard_negatives(records: list[dict], top_k: int) -> list[dict]:
-    """The top-K train-pool CORRECT tokens by contrast score."""
+def select_hard_negatives(
+    records: list[dict], top_k: int, l1: str | None = None
+) -> list[dict]:
+    """The top-K train-pool CORRECT tokens by contrast score.
+
+    With l1 set, only that language group is mined: the Mandarin wall is the
+    one that breaks the pooled bar, so a Mandarin-only round targets exactly
+    the tokens whose correct label the judge keeps refusing to believe.
+    """
     candidates = [
         r
         for r in records
         if r.get("split") == "train"
         and r.get("label") == "correct"
         and r.get("score") is not None
+        and (l1 is None or r.get("l1") == l1)
     ]
     candidates.sort(key=lambda r: r["score"], reverse=True)
     return candidates[:top_k]
@@ -93,7 +102,7 @@ def export_hard_negatives(options: HardNegOptions) -> dict[str, object]:
         json.loads(line) for line in options.checkpoint.read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
-    picks = select_hard_negatives(records, options.top_k)
+    picks = select_hard_negatives(records, options.top_k, l1=options.l1)
     keys = {(r["utterance_id"], r["token_index"]) for r in picks}
     settings = Settings()
     registry = ModelRegistry(options.model_dir or settings.model_dir)
@@ -162,6 +171,7 @@ def export_hard_negatives(options: HardNegOptions) -> dict[str, object]:
         writer.writerows(rows)
     manifest: dict[str, object] = {
         "label_policy": "top-K correct tokens by the exam contrast score (hard negatives)",
+        "l1": options.l1,
         "top_k": options.top_k,
         "pad_s": options.pad_s,
         "rows": len(rows),
@@ -179,6 +189,9 @@ def main() -> None:
     parser.add_argument("--so762", required=True)
     parser.add_argument("--out", required=True)
     parser.add_argument("--top-k", type=int, default=200)
+    parser.add_argument(
+        "--l1", default=None, help="mine only this L1 group (e.g. mandarin)"
+    )
     args = parser.parse_args()
     manifest = export_hard_negatives(
         HardNegOptions(
@@ -187,6 +200,7 @@ def main() -> None:
             so762_root=Path(args.so762),
             out_dir=Path(args.out),
             top_k=args.top_k,
+            l1=args.l1,
         )
     )
     print(json.dumps(manifest, indent=2))

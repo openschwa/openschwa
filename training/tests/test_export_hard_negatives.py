@@ -12,14 +12,27 @@ from openschwa_engine.alignment import AlignedPhone
 import openschwa_training.export_hard_negatives as hardneg
 
 
-def _record(utt, idx, score, label, split):
+def _record(utt, idx, score, label, split, l1="arabic"):
     return {
         "utterance_id": utt,
         "token_index": idx,
         "score": score,
         "label": label,
         "split": split,
+        "l1": l1,
     }
+
+
+def test_select_filters_by_l1():
+    records = [
+        _record("u1", 0, 2.0, "correct", "train", l1="mandarin"),
+        _record("u2", 1, 1.5, "correct", "train", l1="arabic"),
+        _record("u3", 2, 0.5, "correct", "train", l1="mandarin"),
+    ]
+    picks = hardneg.select_hard_negatives(records, top_k=5, l1="mandarin")
+    assert [p["utterance_id"] for p in picks] == ["u1", "u3"]
+    picks_all = hardneg.select_hard_negatives(records, top_k=5)
+    assert len(picks_all) == 3
 
 
 def test_select_keeps_top_train_correct_only():
