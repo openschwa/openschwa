@@ -5,9 +5,13 @@ import math
 import pytest
 
 from openschwa_eval.harness import (
+    L1_MIN_POSITIVES,
     TokenRecord,
+    _bar_status,
     _metrics,
+    _metrics_per_l1,
     build_calibration,
+    fit_l1_thresholds,
     fit_platt,
     pick_threshold,
     raw_score_from_posteriors,
@@ -136,6 +140,69 @@ def test_shipping_bar_unmet_is_reported():
     assert status == "SHIPPING BAR NOT MET"
 
 
+def _group(l1: str, scores_labels: list[tuple[float | None, str]]) -> list[TokenRecord]:
+    return [record(score=s, label=label, l1=l1) for s, label in scores_labels]
+
+
+def test_fit_l1_thresholds_fits_big_groups_and_skips_small_ones():
+    a, b = 1.0, 0.0
+    train = _group("arabic", [(3.0, "substituted")] * 6)
+    train += _group("korean", [(3.0, "substituted")] * (L1_MIN_POSITIVES - 1))
+    thresholds, details = fit_l1_thresholds(train, a, b, "mean")
+    assert "arabic" in thresholds
+    assert "korean" not in thresholds  # too few positives -> global fallback
+    assert details["arabic"]["fitted"] is True
+    assert details["korean"]["fitted"] is False
+    assert details["korean"]["positives"] == L1_MIN_POSITIVES - 1
+
+
+def test_metrics_per_l1_flags_each_group_at_its_own_point():
+    a, b = 1.0, 0.0
+    # Mandarin has a fitted low point (0.6); everyone else uses the strict
+    # global point (0.99). The same p ~ 0.75 evidence must flag the Mandarin
+    # error and not the Arabic one.
+    records = _group("mandarin", [(1.1, "substituted"), (-3.0, "correct")])
+    records += _group("arabic", [(1.1, "substituted"), (-3.0, "correct")])
+    m = _metrics_per_l1(records, a, b, "mean", {"mandarin": 0.6}, 0.99)
+    assert m["tp"] == 1  # only the mandarin error flags
+    assert m["fp"] == 0
+    assert m["fn"] == 1
+    assert m["precision"] == 1.0
+    assert m["recall"] == 0.5
+    # A pooled line would have caught neither error:
+    pooled = _metrics(records, a, b, threshold=0.99)
+    assert pooled["recall"] == 0.0
+
+
+def test_bar_status_ok_when_every_group_meets_the_bar():
+    a, b = 1.0, 0.0
+    test = _group("mandarin", [(3.0, "substituted")] * 5 + [(-3.0, "correct")] * 5)
+    test += _group("korean", [(-3.0, "correct")])  # no positives -> fine
+    status, per_group = _bar_status("ok", test, a, b, "mean", {"mandarin": 0.9}, 0.9)
+    assert status == "ok"
+    assert per_group["mandarin"]["ok"] is True
+    assert per_group["korean"]["ok"] is True
+
+
+def test_bar_status_blocks_a_group_short_on_recall():
+    a, b = 1.0, 0.0
+    # Four of five Mandarin errors sit below the fitted point: recall 0.2.
+    test = _group(
+        "mandarin",
+        [(2.0, "substituted")] * 4 + [(3.5, "substituted")] + [(-3.0, "correct")] * 4,
+    )
+    status, per_group = _bar_status("ok", test, a, b, "mean", {"mandarin": 0.95}, 0.95)
+    assert status == "ok-no-l1-floor"
+    assert per_group["mandarin"]["ok"] is False
+
+
+def test_bar_status_passes_the_global_failure_through():
+    a, b = 1.0, 0.0
+    test = _group("mandarin", [(3.0, "substituted")] * 5)
+    status, _ = _bar_status("SHIPPING BAR NOT MET", test, a, b, "mean", {}, 0.9)
+    assert status == "SHIPPING BAR NOT MET"
+
+
 def test_build_calibration_matches_the_engine_model():
     from openschwa_engine.config import Settings
     from openschwa_engine.scoring.calibration import Calibration
@@ -149,6 +216,7 @@ def test_build_calibration_matches_the_engine_model():
         (2.0, 1.0),
         "eval/reports/test.json",
         Settings(),
+        l1_thresholds={"arabic": 0.9, "mandarin": 0.8},
     )
     calibration = Calibration.model_validate(content)
     contrast = calibration.contrast("ð")
@@ -156,3 +224,6 @@ def test_build_calibration_matches_the_engine_model():
     assert contrast.threshold == 0.85
     assert contrast.substitution_platt.a == 1.5
     assert contrast.gop_platt is not None
+    assert contrast.l1_thresholds == {"arabic": 0.9, "mandarin": 0.8}
+    assert contrast.threshold_for("arabic") == 0.9
+    assert contrast.threshold_for("russian") == 0.85  # unknown -> global

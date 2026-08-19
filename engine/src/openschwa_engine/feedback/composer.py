@@ -81,13 +81,15 @@ def compose(
     *,
     include_ungated: bool = False,
     calibration: "Calibration | None" = None,
+    l1: str | None = None,
 ) -> list[FeedbackItem]:
     """Gate-passing feedback for one analysis.
 
     alignment.status != "ok" short-circuits to a single retry item. On a
     successful alignment each contrast contributes an item only when the gate
     passed it: verdict substituted at or above the calibrated operating
-    threshold (which is exactly how a substituted verdict is decided).
+    threshold (which is exactly how a substituted verdict is decided, using
+    the learner's per-L1 threshold when their language has one).
     Uncertain verdicts ship only under include_ungated, for the eval harness.
     """
     if not outcome.ok:
