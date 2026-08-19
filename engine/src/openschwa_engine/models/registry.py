@@ -121,6 +121,142 @@ MANIFEST: Mapping[str, ModelSpec] = MappingProxyType(
             ),
             role="contrast",
         ),
+        "dh-contrast-v2": ModelSpec(
+            id="dh-contrast-v2",
+            repo_id="local",
+            revision="local",
+            phone_table="dhz_en",
+            vocab_snapshot="dh-contrast-v2.json",
+            download_bytes=0,
+            license="Apache-2.0 (fine-tuned locally from the charsiu base)",
+            note=(
+                "Option 1 closed-set sequence classifier for /ð/ vs {z, d, v}: "
+                "a charsiu-base wav2vec2 with a 4-class pooled classification head, "
+                "fine-tuned with Cross-Entropy loss on L2-ARCTIC + speechocean762 train splits."
+            ),
+            role="contrast",
+        ),
+        "dh-contrast-v3": ModelSpec(
+            id="dh-contrast-v3",
+            repo_id="local",
+            revision="local",
+            phone_table="dhz_en",
+            vocab_snapshot="dh-contrast-v3.json",
+            download_bytes=0,
+            license="Apache-2.0 (fine-tuned locally from the charsiu base)",
+            note=(
+                "Wav2Vec2 + DSP Acoustic Feature Fusion Classifier for /ð/ vs {z, d, v}: "
+                "incorporating high-frequency sibilance ratio, stop closure/burst cues, "
+                "and 100ms expanded context window."
+            ),
+            role="contrast",
+        ),
+        "dh-contrast-v4": ModelSpec(
+            id="dh-contrast-v4",
+            repo_id="local",
+            revision="local",
+            phone_table="dhz_en",
+            vocab_snapshot="dh-contrast-v4.json",
+            download_bytes=0,
+            license="Apache-2.0 (fine-tuned locally from the charsiu base)",
+            note=(
+                "Refined 10-dim DSP Acoustic Feature Fusion Classifier for /ð/ vs {z, d, v}: "
+                "with burst contrast ratio, sibilance prominence, and voicing continuity."
+            ),
+            role="contrast",
+        ),
+        "dh-contrast-v5": ModelSpec(
+            id="dh-contrast-v5",
+            repo_id="local",
+            revision="local",
+            phone_table="dhz_en",
+            vocab_snapshot="dh-contrast-v5.json",
+            download_bytes=0,
+            license="Apache-2.0 (fine-tuned locally from the charsiu base)",
+            note=(
+                "Target-Boosted 10-dim DSP Acoustic Feature Fusion Classifier for "
+                "/ð/ vs {z, d, v}: calibrated to meet the >=90% precision shipping bar."
+            ),
+            role="contrast",
+        ),
+        "dh-contrast-v6": ModelSpec(
+            id="dh-contrast-v6",
+            repo_id="local",
+            revision="local",
+            phone_table="dhz_en",
+            vocab_snapshot="dh-contrast-v6.json",
+            download_bytes=0,
+            license="Apache-2.0 (fine-tuned locally from the charsiu base)",
+            note=("Optimized Precision-Gated 10-dim DSP Fusion Classifier for /ð/ vs {z, d, v}."),
+            role="contrast",
+        ),
+        "dh-contrast-v7": ModelSpec(
+            id="dh-contrast-v7",
+            repo_id="local",
+            revision="local",
+            phone_table="dhz_en",
+            vocab_snapshot="dh-contrast-v7.json",
+            download_bytes=0,
+            license="Apache-2.0 (fine-tuned locally from the charsiu base)",
+            note=(
+                "12-dim Core/Boundary DSP Feature Fusion Classifier for /ð/ vs {z, d, v}: "
+                "isolates coarticulation bleed and eliminates continuous speech false alarms."
+            ),
+            role="contrast",
+        ),
+        "dh-contrast-v8": ModelSpec(
+            id="dh-contrast-v8",
+            repo_id="local",
+            revision="local",
+            phone_table="dhz_en",
+            vocab_snapshot="dh-contrast-v8.json",
+            download_bytes=0,
+            license="Apache-2.0 (fine-tuned locally from the charsiu base)",
+            note=("Balanced 10-dim DSP Acoustic Feature Fusion Classifier for /ð/ vs {z, d, v}."),
+            role="contrast",
+        ),
+        "dh-contrast-v9": ModelSpec(
+            id="dh-contrast-v9",
+            repo_id="local",
+            revision="local",
+            phone_table="dhz_en",
+            vocab_snapshot="dh-contrast-v9.json",
+            download_bytes=0,
+            license="Apache-2.0 (fine-tuned locally from the charsiu base)",
+            note=(
+                "Dual Mean+Max Temporal Pooling 10-dim DSP Fusion Classifier for /ð/ vs {z, d, v}: "
+                "balanced loss weighting for robust human practice discrimination."
+            ),
+            role="contrast",
+        ),
+        "dh-contrast-v10": ModelSpec(
+            id="dh-contrast-v10",
+            repo_id="local",
+            revision="local",
+            phone_table="dhz_en",
+            vocab_snapshot="dh-contrast-v10.json",
+            download_bytes=0,
+            license="Apache-2.0 (fine-tuned locally from the charsiu base)",
+            note=(
+                "Hard-negative trained 10-dim DSP Fusion Classifier for /ð/ vs {z, d, v}: "
+                "expert-error examples + mined hard negatives + no label smoothing."
+            ),
+            role="contrast",
+        ),
+        "tinyschwa-v1": ModelSpec(
+            id="tinyschwa-v1",
+            repo_id="local",
+            revision="local",
+            phone_table="dhz_en",
+            vocab_snapshot="tinyschwa-v1.json",
+            download_bytes=0,
+            license="Apache-2.0 (fine-tuned locally from facebook/wav2vec2-xls-r-300m)",
+            note=(
+                "TinySchwa v1: 300M Cross-Lingual XLS-R Foundation Model with Dual Mean+Max "
+                "Temporal Pooling and 10-dim DSP Acoustic Feature Fusion for /ð/ vs {z, d, v}."
+            ),
+            role="contrast",
+        ),
     }
 )
 
@@ -228,6 +364,11 @@ class ModelRegistry:
         Resumable: `huggingface_hub` keeps partial files and continues from
         wherever an interrupted run stopped.
         """
+        if spec.repo_id == "local":
+            raise ModelError(
+                f"model '{spec.id}' is built locally (training/) - copy the training "
+                f"run's out/model/ directory to {self.local_dir(spec)} and restart"
+            )
         if find_spec("huggingface_hub") is None:
             raise ModelError(
                 "huggingface_hub is not installed — run `uv sync --extra ml` in engine/"
@@ -243,11 +384,6 @@ class ModelRegistry:
                 self._downloading.discard(spec.id)
 
     def _pull(self, spec: ModelSpec) -> Iterator[dict[str, Any]]:
-        if spec.repo_id == "local":
-            raise ModelError(
-                f"model '{spec.id}' is built locally (training/) - copy the training "
-                f"run's out/model/ directory to {self.local_dir(spec)} and restart"
-            )
         from huggingface_hub import snapshot_download  # noqa: PLC0415 - lazy `ml` extra
         from tqdm.auto import tqdm as base_tqdm  # noqa: PLC0415 - lazy `ml` extra
 
