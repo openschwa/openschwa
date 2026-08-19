@@ -201,8 +201,8 @@ load. First pack: `en-dh-z` (/ð/ → /z/).
 - **M1 — one contrast put to the bar (/ð/→/z/). ✅ Done, negative result.**
   Everything the milestone promised *machinery*-wise shipped and is tested:
   the eval harness over L2-ARCTIC + speechocean762 (adapters, checkpointed
-  runner, Platt fitting, precision-first threshold sweep with the per-L1
-  floor), closed-set contrast scoring with four aggregations (label-frame
+  runner, Platt fitting, precision-first threshold sweep), closed-set
+  contrast scoring with four aggregations (label-frame
   mean, spike frame, frame vote, GOP), the calibration pipeline
   (scoring/calibration.yaml, written only by the harness), silero VAD behind
   detect_speech, the gated anchored segmental_substitution feedback path,
@@ -244,7 +244,7 @@ all. It is the authority; everywhere else in this repo cites it.
 
 | Risk | Mitigation |
 |---|---|
-| Model accuracy on strong accents, child voices, laptop mics | Confidence gating; retry over wrong verdicts; per-L1 eval breakdown; closed-set scoring |
+| Model accuracy on strong accents, child voices, laptop mics | Confidence gating; retry over wrong verdicts; per-L1 fairness audit in the eval report (informational, never a gate); closed-set scoring |
 | CTC peakiness undermines interval GOP | Measured in the M1 bake-off: mean/spike/vote/GOP all sit near chance on /ð/ (AUC ≤ 0.59 held-out) — the bottleneck is the model's discrimination, not the aggregation; see eval/reports/ |
 | Phone-set mapping bugs silently corrupt verdicts | One canonical IPA inventory; per-model tables; round-trip tests |
 | PyInstaller + torch bundle (~0.5–1 GB, notarization, SmartScreen) | **Spike done**: 590 MB unsigned bundle works. Signing/notarization still M4; ONNX Runtime fallback still pre-planned if size bites |

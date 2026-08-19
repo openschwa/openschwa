@@ -52,20 +52,13 @@ class ContrastCalibration(BaseModel):
     #: P(substituted) - fitted by the eval harness on the train split.
     substitution_platt: PlattCalibration
     #: Operating point from the precision-first PR sweep (train split only).
+    #: One threshold for every learner: the judge is blind to who is speaking.
+    #: The harness's per-L1 breakdown exists to *audit* that blindness (does
+    #: the single line treat every language group fairly?), not to ship
+    #: per-language lines.
     threshold: float = Field(ge=0.5, le=1.0)
-    #: Per-L1 operating points, fitted per first-language group on the train
-    #: split. A learner whose L1 has an entry uses it; everyone else uses the
-    #: global threshold. This exists because the v3 exam proved the pooled
-    #: threshold cannot serve two acoustically different populations at once:
-    #: a global cut that keeps Mandarin precision high flags every Arabic
-    #: learner, and vice versa.
-    l1_thresholds: dict[str, float] = {}
     #: Maps GOP to Phone.score in [0, 1]; null while GOP calibration is absent.
     gop_platt: PlattCalibration | None = None
-
-    def threshold_for(self, l1: str | None) -> float:
-        """The operating point for a learner, per their first language."""
-        return self.l1_thresholds.get(l1, self.threshold) if l1 else self.threshold
 
     def score_of(self, raw: ContrastScore, gop: float | None = None) -> float | None:
         """The raw value the calibration was fitted on, by variant.

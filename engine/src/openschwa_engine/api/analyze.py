@@ -36,9 +36,6 @@ def analyze(
     exercise_id: Annotated[str, Form()],
     audio: Annotated[UploadFile, File()],
     include_ungated: Annotated[bool, Query()] = False,
-    #: The learner's first language (e.g. "mandarin"): the engine applies the
-    #: per-L1 operating threshold when calibration carries one for it.
-    l1: Annotated[str | None, Query()] = None,
 ) -> AnalysisResult:
     exercise: Exercise | None = library.get(exercise_id)
     if exercise is None:
@@ -60,5 +57,5 @@ def analyze(
 
     prepared = prepare(decoded.samples, decoded.sample_rate, vad_backend=settings.vad_backend)
     return analyze_recording(
-        prepared, exercise, registry, settings, include_ungated=include_ungated, l1=l1
+        prepared, exercise, registry, settings, include_ungated=include_ungated
     )

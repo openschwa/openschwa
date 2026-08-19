@@ -110,7 +110,6 @@ def decide(
     raw: ContrastScore,
     calibration: ContrastCalibration,
     gop: float | None = None,
-    l1: str | None = None,
 ) -> tuple[Literal["on_target", "substituted", "uncertain"], float, str | None]:
     """Turn a raw contrast score into a verdict via the committed calibration.
 
@@ -118,18 +117,18 @@ def decide(
     Platt-calibrated P(substituted), the number the eval harness swept to
     choose the operating point, and the number the composer gates on.
 
-    The verdict is decided against the *calibrated* operating threshold (the
-    learner's per-L1 one when their L1 has one), not a fixed 0.5: below the
-    band it is on_target, above it substituted, and inside the band
-    uncertain; the engine refuses to guess there. A variant whose evidence is
-    absent (e.g. a GOP calibration with no GOP) degrades to uncertain rather
-    than guessing.
+    The verdict is decided against the *calibrated* operating threshold, not a
+    fixed 0.5: below the band it is on_target, above it substituted, and
+    inside the band uncertain; the engine refuses to guess there. One
+    threshold serves every learner: the judge is blind to who is speaking. A
+    variant whose evidence is absent (e.g. a GOP calibration with no GOP)
+    degrades to uncertain rather than guessing.
     """
     value = calibration.score_of(raw, gop)
     if value is None:
         return "uncertain", 0.0, None
     p_sub = calibration.substitution_platt.probability(value)
-    threshold = calibration.threshold_for(l1)
+    threshold = calibration.threshold
     if p_sub >= threshold:
         return "substituted", p_sub, raw.best_confusion
     if p_sub <= 1.0 - threshold:

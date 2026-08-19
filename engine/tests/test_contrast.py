@@ -172,20 +172,19 @@ def test_vote_fraction_counts_confusion_winning_frames():
     assert result.vote_fraction == pytest.approx(0.5, abs=1e-6)
 
 
-def test_decide_uses_the_learners_per_l1_threshold():
-    """The same evidence flags different verdicts per L1: a high-Mandarin
-    operating point refuses to judge what a low-Arabic one flags, in both
-    directions. That is the whole point of the per-L1 thresholds (the v3
-    exam's pooled-threshold failure)."""
-    per_l1 = calibration().model_copy(update={"l1_thresholds": {"mandarin": 0.95, "arabic": 0.55}})
-    # p_sub = sigmoid(0.8) ~ 0.69: above arabic's threshold, inside mandarin's band.
-    verdict_m, _, _ = decide(raw(0.8), per_l1, l1="mandarin")
-    verdict_a, _, _ = decide(raw(0.8), per_l1, l1="arabic")
-    assert verdict_a == "substituted"
-    assert verdict_m == "uncertain"
-    # p_sub = sigmoid(-2.2) ~ 0.10: on_target for arabic, still uncertain for mandarin.
-    verdict_a2, _, _ = decide(raw(-2.2), per_l1, l1="arabic")
-    assert verdict_a2 == "on_target"
+def test_decide_uses_the_single_calibrated_threshold():
+    """One threshold for every learner: the judge is blind to who is
+    speaking. The same evidence yields the same verdict no matter who said
+    it - there is no per-language input anywhere in the decision."""
+    # p_sub = sigmoid(2.0) ~ 0.88: above the 0.85 threshold.
+    verdict, confidence, detected = decide(raw(2.0), calibration())
+    assert verdict == "substituted"
+    assert confidence == pytest.approx(0.8808, abs=1e-3)
+    assert detected == "z"
+    # p_sub = sigmoid(0.8) ~ 0.69: inside the band -> refuse to judge.
+    assert decide(raw(0.8), calibration())[0] == "uncertain"
+    # p_sub = sigmoid(-2.2) ~ 0.10: below the band.
+    assert decide(raw(-2.2), calibration())[0] == "on_target"
 
 
 def test_decide_uses_the_variant_the_calibration_names():

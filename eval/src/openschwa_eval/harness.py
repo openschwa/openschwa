@@ -287,114 +287,45 @@ def _flag(record: TokenRecord, a: float, b: float, threshold: float, variant: st
     return sigmoid(a * value + b) >= threshold
 
 
-def _flag_per_l1(
-    record: TokenRecord,
-    a: float,
-    b: float,
-    variant: str,
-    l1_thresholds: dict[str, float],
-    default_threshold: float,
-) -> bool:
-    """Flags using the token's own L1 operating point, falling back to the
-    global one. The v3 exam proved one global cut cannot serve two
-    acoustically different populations at once.
-    """
-    threshold = l1_thresholds.get(record.l1, default_threshold)
-    return _flag(record, a, b, threshold, variant)
-
-
-def _metrics_per_l1(
-    records: list[TokenRecord],
-    a: float,
-    b: float,
-    variant: str,
-    l1_thresholds: dict[str, float],
-    default_threshold: float,
-) -> dict[str, object]:
-    """Precision/recall/F1 with per-token L1 operating points."""
-    flagged = [
-        r for r in records if _flag_per_l1(r, a, b, variant, l1_thresholds, default_threshold)
-    ]
-    flagged_ids = {id(r) for r in flagged}
-    positives = [r for r in records if r.positive]
-    tp = sum(1 for r in flagged if r.positive)
-    fp = sum(1 for r in flagged if not r.positive)
-    fn = sum(1 for r in positives if id(r) not in flagged_ids)
-    precision = tp / (tp + fp) if tp + fp else 0.0
-    recall = tp / (tp + fn) if tp + fn else 0.0
-    f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
-    return {
-        "tokens": len(records),
-        "positives": len(positives),
-        "verdicts": sum(1 for r in records if _variant_value(r, variant) is not None),
-        "refused": sum(1 for r in records if _variant_value(r, variant) is None),
-        "audio_problem_refused": sum(1 for r in records if r.audio_problem),
-        "tp": tp,
-        "fp": fp,
-        "fn": fn,
-        "precision": round(precision, 4),
-        "recall": round(recall, 4),
-        "f1": round(f1, 4),
-    }
-
-
-def fit_l1_thresholds(
-    train: list[TokenRecord], a: float, b: float, variant: str
-) -> tuple[dict[str, float], dict[str, dict[str, object]]]:
-    """Per-L1 operating points: each group gets its own precision-first sweep.
-
-    Groups with too few positives reuse the global threshold: a per-group
-    cut fitted on five tokens is noise, and a wrong per-group cut is worse
-    than a shared one.
-    """
-    thresholds: dict[str, float] = {}
-    details: dict[str, dict[str, object]] = {}
-    for l1, group in sorted(_group_by_l1(train).items()):
-        positives = sum(1 for r in group if r.positive)
-        if positives < L1_MIN_POSITIVES:
-            details[l1] = {"fitted": False, "positives": positives}
-            continue
-        threshold, metrics, status = pick_threshold(group, a, b, variant)
-        thresholds[l1] = threshold
-        details[l1] = {
-            "fitted": True,
-            "threshold": threshold,
-            "status": status,
-            "train": metrics,
-        }
-    return thresholds, details
-
-
-def _bar_status(
-    v_status: str,
+def _per_l1_audit(
     test: list[TokenRecord],
     a: float,
     b: float,
+    threshold: float,
     variant: str,
-    l1_thresholds: dict[str, float],
-    default_threshold: float,
-) -> tuple[str, dict[str, object]]:
-    """The per-L1 shipping decision.
+) -> dict[str, object]:
+    """Fairness audit of the single shipped line.
 
-    'ok' requires every L1 group with enough held-out positives to meet the
-    accept criterion at its own operating point (P >= 0.90, R >= 0.4),
-    every smaller group to stay above the precision floor, AND the global
-    train sweep to have passed (for learners whose L1 we do not know).
+    Every L1 group is scored at the SAME global operating point and its
+    precision/recall reported with an 'ok' flag. Informational only: the
+    shipping bar is the pooled number. This table answers 'does the
+    accent-blind line treat every language group alike?' and, when the pooled
+    bar fails, names the group that broke it.
     """
-    per_group: dict[str, object] = {}
-    group_ok = True
+    audit: dict[str, object] = {}
     for l1, group in sorted(_group_by_l1(test).items()):
-        metrics = _metrics_per_l1(group, a, b, variant, l1_thresholds, default_threshold)
+        metrics = _metrics(group, a, b, threshold, variant)
         positives = int(metrics["positives"])
         if positives >= L1_MIN_POSITIVES:
             ok = metrics["precision"] >= PRECISION_TARGET and metrics["recall"] >= RECALL_TARGET
         else:
             ok = positives == 0 or metrics["precision"] >= L1_PRECISION_FLOOR
-        per_group[l1] = {"ok": ok, **metrics}
-        group_ok = group_ok and ok
+        audit[l1] = {"ok": ok, **metrics}
+    return audit
+
+
+def _final_status(v_status: str, test_metrics: dict[str, object]) -> str:
+    """The accent-agnostic shipping decision.
+
+    'ok' requires the global train sweep to pass AND the single operating
+    point to meet the bar on the whole held-out pool. The per-L1 breakdown
+    never gates anything: the judge is blind to who is speaking.
+    """
     if v_status != "ok":
-        return v_status, per_group
-    return ("ok" if group_ok else "ok-no-l1-floor"), per_group
+        return v_status
+    if test_metrics["precision"] >= PRECISION_TARGET and test_metrics["recall"] >= RECALL_TARGET:
+        return "ok"
+    return "pooled-bar-not-met"
 
 def _metrics(
     records: list[TokenRecord], a: float, b: float, threshold: float, variant: str = "mean"
@@ -484,12 +415,12 @@ def fit_platt(scores: list[float], labels: list[bool]) -> tuple[float, float]:
 def pick_threshold(
     train: list[TokenRecord], a: float, b: float, variant: str = "mean"
 ) -> tuple[float, dict[str, object], str]:
-    """Precision-first operating point, with the per-L1 floor.
+    """Precision-first operating point (eval/README.md).
 
-    Policy (eval/README.md): precision is not negotiable; recall is. Among
-    thresholds meeting the precision target we prefer those keeping every L1
-    group above its floor, then the highest recall. Returns the threshold, the
-    metrics at it, and a status note.
+    Precision is not negotiable; recall is. Among thresholds meeting the
+    precision target on the pooled train set, pick the highest recall. One
+    threshold serves every learner - there is no per-language step. Returns
+    the threshold, the metrics at it, and a status note.
     """
     candidates = [round(0.5 + 0.005 * step, 3) for step in range(0, 100)]
     results = {t: _metrics(train, a, b, t, variant) for t in candidates}
@@ -500,20 +431,8 @@ def pick_threshold(
         # available and refuse to ship feedback at all.
         best_t = max(candidates, key=lambda t: (results[t]["precision"], t))
         return best_t, results[best_t], "SHIPPING BAR NOT MET"
-
-    def l1_ok(t: float) -> bool:
-        for _l1, records in _group_by_l1(train).items():
-            m = _metrics(records, a, b, t, variant)
-            positives = int(m["positives"])
-            if positives >= L1_MIN_POSITIVES and m["precision"] < L1_PRECISION_FLOOR:
-                return False
-        return True
-
-    with_floor = [t for t in meeting_target if l1_ok(t)]
-    pool = with_floor if with_floor else meeting_target
-    status = "ok" if with_floor else "ok-no-l1-floor"
-    chosen = max(pool, key=lambda t: (results[t]["recall"], t))
-    return chosen, results[chosen], status
+    chosen = max(meeting_target, key=lambda t: (results[t]["recall"], t))
+    return chosen, results[chosen], "ok"
 
 
 def _group_by_l1(records: list[TokenRecord]) -> dict[str, list[TokenRecord]]:
@@ -557,9 +476,12 @@ def build_calibration(
     generated_by: str,
     settings: Settings,
     score_variant: str = "mean",
-    l1_thresholds: "dict[str, float] | None" = None,
 ) -> dict[str, object]:
-    """The calibration.yaml content, mirroring scoring/calibration.py's models."""
+    """The calibration.yaml content, mirroring scoring/calibration.py's models.
+
+    Deliberately accent-blind: one operating point for every learner, with no
+    per-language entries (the engine rejects a file that carries any).
+    """
     contrast: dict[str, object] = {
         "target": contrast_target,
         "confusions": confusions,
@@ -567,8 +489,6 @@ def build_calibration(
         "substitution_platt": {"a": platt[0], "b": platt[1]},
         "threshold": threshold,
     }
-    if l1_thresholds:
-        contrast["l1_thresholds"] = l1_thresholds
     if gop_platt is not None:
         contrast["gop_platt"] = {"a": gop_platt[0], "b": gop_platt[1]}
     return {
@@ -705,28 +625,22 @@ def evaluate_model(
             continue
         v_a, v_b = fit_platt(values, labels)
         v_threshold, v_train_metrics, v_status = pick_threshold(train, v_a, v_b, variant)
-        # Per-L1 operating points: each first-language group sweeps its own
-        # precision-first threshold (fit_l1_thresholds), the held-out pool is
-        # scored with each token's own group threshold (_metrics_per_l1), and
-        # the shipping status requires EVERY group to meet the bar at its own
-        # point (_bar_status). This is the per-L1 design: one judge, one
-        # measurement, a fair flag-line per language.
-        v_l1_thresholds, v_l1_details = fit_l1_thresholds(train, v_a, v_b, variant)
-        v_test_metrics = _metrics_per_l1(test, v_a, v_b, variant, v_l1_thresholds, v_threshold)
-        v_status_final, v_per_group = _bar_status(
-            v_status, test, v_a, v_b, variant, v_l1_thresholds, v_threshold
-        )
+        # The accent-agnostic bar: ONE operating point for every learner. The
+        # held-out pool is scored at it, and the per-L1 breakdown is computed
+        # at that same point as a fairness audit (does the blind line treat
+        # every language group alike?). The audit never gates anything.
+        v_test_metrics = _metrics(test, v_a, v_b, v_threshold, variant)
+        v_per_l1 = _per_l1_audit(test, v_a, v_b, v_threshold, variant)
+        v_status_final = _final_status(v_status, v_test_metrics)
         v_auc = _auc(test, v_a, v_b, variant)
         variants[variant] = {
             "platt": {"a": v_a, "b": v_b},
             "threshold": v_threshold,
-            "l1_thresholds": v_l1_thresholds,
-            "l1_fit": v_l1_details,
             "status": v_status_final,
             "global_train_status": v_status,
             "train": v_train_metrics,
             "test": v_test_metrics,
-            "per_l1": v_per_group,
+            "per_l1": v_per_l1,
             "auc": round(v_auc, 4) if not math.isnan(v_auc) else None,
         }
 
@@ -748,14 +662,13 @@ def evaluate_model(
 
     a, b = best["platt"]["a"], best["platt"]["b"]  # type: ignore[index]
     threshold = best["threshold"]  # type: ignore[assignment]
-    l1_thresholds = best["l1_thresholds"]  # type: ignore[assignment]
     train_metrics = best["train"]  # type: ignore[assignment]
     status = best["status"]  # type: ignore[assignment]
     test_metrics = best["test"]  # type: ignore[assignment]
     auc = best["auc"]
-    per_l1 = best["per_l1"]  # type: ignore[assignment] - the per-group bar table
+    per_l1 = best["per_l1"]  # type: ignore[assignment] - the fairness audit table
     per_corpus = {
-        corpus: _metrics_per_l1(records, a, b, best_variant, l1_thresholds, threshold)
+        corpus: _metrics(records, a, b, threshold, best_variant)
         for corpus, records in sorted(_group_by_corpus(test).items())
     }
     warm_ms = [r.wall_ms for r in run.records if r.score is not None and r.wall_ms > 0]
@@ -772,7 +685,6 @@ def evaluate_model(
         "platt": best["platt"],
         "gop_platt": {"a": gop_platt[0], "b": gop_platt[1]} if gop_platt else None,
         "threshold": threshold,
-        "l1_thresholds": l1_thresholds,
         "status": status,
         "train_metrics": train_metrics,
         "test_metrics": test_metrics,
@@ -810,7 +722,6 @@ def evaluate_model(
             generated_by=f"eval/reports/{run_tag}.json",
             settings=settings,
             score_variant=best_variant,
-            l1_thresholds=l1_thresholds,
         )
         write_calibration(calibration)
     elif commit_calibration:
@@ -867,22 +778,21 @@ def render_report(summary: dict[str, object]) -> str:
         f"refused {summary['test_metrics']['refused']} "
         f"(audio-problem {summary['test_metrics']['audio_problem_refused']})",
         "",
-        "## Per L1 (held-out)",
+        "## Per L1 audit (held-out)",
         "",
-        "Every group with enough train positives gets its own operating point",
-        "(fitted); everyone else - including learners whose L1 we do not know -",
-        f"uses the global threshold {summary['threshold']}.",
+        "Fairness check of the single shipped line: every group is scored at",
+        f"the same global operating point {summary['threshold']}. Informational",
+        "only - it never gates the bar; it shows whether the accent-blind line",
+        "treats every language group alike, and names the group when it does",
+        "not.",
         "",
-        "| l1 | tokens | positives | threshold | precision | recall | f1 | ok |",
-        "|---|---|---|---|---|---|---|---|",
+        "| l1 | tokens | positives | precision | recall | f1 | fair |",
+        "|---|---|---|---|---|---|---|",
     ]
-    l1_thresholds = summary["l1_thresholds"]
     for l1, m in summary["per_l1"].items():
-        threshold = l1_thresholds.get(l1, summary["threshold"])
-        source = "fitted" if l1 in l1_thresholds else "global"
         lines.append(
-            f"| {l1} | {m['tokens']} | {m['positives']} | {threshold} ({source}) | "
-            f"{m['precision']} | {m['recall']} | {m['f1']} | {m['ok']} |"
+            f"| {l1} | {m['tokens']} | {m['positives']} | {m['precision']} | "
+            f"{m['recall']} | {m['f1']} | {m['ok']} |"
         )
     lines += [
         "",

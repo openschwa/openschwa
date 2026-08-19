@@ -77,7 +77,10 @@ def test_round_trips_through_pydantic(tmp_path):
     assert reparsed == calibration
 
 
-def test_per_l1_thresholds_fall_back_to_the_global(tmp_path):
+def test_per_l1_thresholds_are_rejected(tmp_path):
+    """The shipped calibration must be blind to the learner's language: a
+    file carrying per-L1 operating points is invalid and the engine refuses
+    it loudly (no feedback beats wrong feedback)."""
     path = tmp_path / "calibration.yaml"
     path.write_text(
         VALID.replace(
@@ -86,10 +89,4 @@ def test_per_l1_thresholds_fall_back_to_the_global(tmp_path):
         ),
         encoding="utf-8",
     )
-    calibration = load_calibration(path)
-    contrast = calibration.contrast("ð")
-    assert contrast is not None
-    assert contrast.threshold_for("mandarin") == 0.92
-    assert contrast.threshold_for("arabic") == 0.80
-    assert contrast.threshold_for("korean") == 0.85  # unknown L1 -> global
-    assert contrast.threshold_for(None) == 0.85
+    assert load_calibration(path) is None

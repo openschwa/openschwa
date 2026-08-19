@@ -32,8 +32,10 @@ uv run python run_eval.py \
 
 Per model the harness: runs every labeled target token through the full
 pipeline (include_ungated=true, no HTTP), fits Platt calibration on the
-train pool, sweeps the operating threshold precision-first (with the per-L1
-floor), measures the held-out pool through the *shipped* code path, and
+train pool, sweeps the operating threshold precision-first, measures the
+held-out pool through the *shipped* code path (one threshold for every
+learner - the judge is blind to who is speaking; the per-L1 breakdown in the
+report is a fairness audit, not a gate), and
 writes <run>.md + <run>.json under reports/. The winner's calibration is
 committed to the engine's scoring/calibration.yaml **only when the bar is
 met**; a run that misses the bar commits nothing and says so in the report.

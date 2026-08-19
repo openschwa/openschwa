@@ -181,7 +181,6 @@ def _contrasts(
     phone_map: PhoneMap | None,
     calibration: Calibration | None,
     contrast: tuple[AcousticModel, PhoneMap] | None = None,
-    l1: str | None = None,
 ) -> list[ContrastResult]:
     """Closed-set contrast evidence for the focus phone (M1).
 
@@ -238,7 +237,7 @@ def _contrasts(
     confidence: float = 0.0
     detected: str | None = None
     if contrast_calibration is not None:
-        verdict, confidence, detected = decide(raw, contrast_calibration, gop=phone.gop, l1=l1)
+        verdict, confidence, detected = decide(raw, contrast_calibration, gop=phone.gop)
 
     return [
         ContrastResult(
@@ -281,7 +280,6 @@ def analyze_recording(
     settings: Settings,
     *,
     include_ungated: bool = False,
-    l1: str | None = None,
 ) -> AnalysisResult:
     """Run the full pipeline on prepared audio. See the module docstring.
 
@@ -310,7 +308,7 @@ def analyze_recording(
     )
 
     contrast = _load_contrast(registry, settings)
-    contrasts = _contrasts(audio, exercise, outcome, phone_map, calibration, contrast, l1)
+    contrasts = _contrasts(audio, exercise, outcome, phone_map, calibration, contrast)
 
     return AnalysisResult(
         schema_version=SCHEMA_VERSION,  # type: ignore[arg-type]
@@ -359,6 +357,5 @@ def analyze_recording(
             contrasts,
             include_ungated=include_ungated,
             calibration=calibration,
-            l1=l1,
         ),
     )
