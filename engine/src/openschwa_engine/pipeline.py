@@ -37,9 +37,18 @@ from openschwa_engine.schemas.analysis import (
     Prosody,
     Word,
 )
-from openschwa_engine.scoring import Calibration, decide, load_calibration, score_contrast
+from openschwa_engine.scoring import (
+    Calibration,
+    ContrastScore,
+    decide,
+    load_calibration,
+    score_contrast,
+)
 
 log = logging.getLogger(__name__)
+
+
+_mismatch_warned: set[tuple[str, str]] = set()
 
 
 def _matching_calibration(settings: Settings) -> Calibration | None:
@@ -49,6 +58,7 @@ def _matching_calibration(settings: Settings) -> Calibration | None:
     wrong-verdict failure mode the design exists to prevent, so a model_id
     mismatch is refused loudly rather than applied quietly.
     """
+    global _mismatch_warned
     calibration = load_calibration()
     if calibration is None:
         return None
@@ -56,12 +66,15 @@ def _matching_calibration(settings: Settings) -> Calibration | None:
     # calibration fitted for anything else must never be applied.
     scoring_model = settings.contrast_model_id or settings.alignment_model
     if calibration.model_id != scoring_model:
-        log.error(
-            "calibration.yaml was fitted for model '%s' but the engine scores with '%s' - "
-            "refusing to judge with another model's thresholds",
-            calibration.model_id,
-            scoring_model,
-        )
+        pair = (calibration.model_id, scoring_model)
+        if pair not in _mismatch_warned:
+            _mismatch_warned.add(pair)
+            log.warning(
+                "calibration.yaml was fitted for model '%s' but the engine scores with '%s' - "
+                "refusing to judge with another model's thresholds",
+                calibration.model_id,
+                scoring_model,
+            )
         return None
     return calibration
 
@@ -142,17 +155,19 @@ def _load_contrast(
         return None
 
 
-def _focus_segment(audio: PreparedAudio, phone: AlignedPhone) -> np.ndarray:
-    """The focus phone's 16 kHz samples, with the training-time context pad.
+def _focus_segment(audio: PreparedAudio, phone: AlignedPhone, pad_s: float) -> np.ndarray:
+    """The focus phone's 16 kHz samples, with context padding and onset anchoring.
 
-    Sliced from the raw resampled audio directly: the aligned phone times are
-    already in the upload timeline, so the VAD-trimmed region is an
-    unnecessary detour. It is also a harmful one: silero's trim boundaries
-    shift relative to what the judge was trained on (annotation intervals in
-    raw audio), and the v2 exam measured that gap as an AUC collapse
-    (0.74 -> 0.55)."""
-    start = max(0, int((phone.start_s - 0.05) * 16_000))
-    end = min(audio.samples_16k.size, int((phone.end_s + 0.05) * 16_000))
+    When phone.index == 0, we anchor the start to include speech onset from VAD,
+    ensuring early substituted fricatives (e.g. /z/ in 'zis') are never clipped
+    if forced alignment drifted forward onto the vowel.
+    """
+    if phone.index == 0 and audio.speech_interval_s is not None:
+        speech_start = audio.speech_interval_s[0]
+        start = max(0, min(int(speech_start * 16_000), int((phone.start_s - pad_s) * 16_000)))
+    else:
+        start = max(0, int((phone.start_s - pad_s) * 16_000))
+    end = min(audio.samples_16k.size, int((phone.end_s + pad_s) * 16_000))
     segment = audio.samples_16k[start:end]
     if segment.size == 0:
         raise ValueError("focus interval lies outside the audio")
@@ -181,6 +196,7 @@ def _contrasts(
     phone_map: PhoneMap | None,
     calibration: Calibration | None,
     contrast: tuple[AcousticModel, PhoneMap] | None = None,
+    focus_pad_s: float = 0.10,
 ) -> list[ContrastResult]:
     """Closed-set contrast evidence for the focus phone (M1).
 
@@ -205,19 +221,23 @@ def _contrasts(
         log.warning("focus phone /%s/ is missing from the alignment - no contrast", focus.ph)
         return []
 
+    raw: ContrastScore | None = None
     try:
         if contrast is not None:
             contrast_model, contrast_map = contrast
-            segment = _focus_segment(audio, phone)
-            posteriors = contrast_model.posteriors(segment)
-            raw = score_contrast(
-                posteriors.log_probs,
-                np.arange(posteriors.frames, dtype=np.int64),
-                focus.ph,
-                focus.confusions,
-                contrast_map,
-            )
-        else:
+            if focus.ph in contrast_map.index_of:
+                valid_confusions = tuple(c for c in focus.confusions if c in contrast_map.index_of)
+                if valid_confusions:
+                    segment = _focus_segment(audio, phone, focus_pad_s)
+                    posteriors = contrast_model.posteriors(segment)
+                    raw = score_contrast(
+                        posteriors.log_probs,
+                        np.arange(posteriors.frames, dtype=np.int64),
+                        focus.ph,
+                        valid_confusions,
+                        contrast_map,
+                    )
+        if raw is None:
             if phone_map is None or outcome.posteriors is None or not phone.frame_indices:
                 log.warning("focus phone /%s/ has no aligner frames - no contrast", focus.ph)
                 return []
@@ -308,7 +328,15 @@ def analyze_recording(
     )
 
     contrast = _load_contrast(registry, settings)
-    contrasts = _contrasts(audio, exercise, outcome, phone_map, calibration, contrast)
+    contrasts = _contrasts(
+        audio,
+        exercise,
+        outcome,
+        phone_map,
+        calibration,
+        contrast,
+        focus_pad_s=settings.focus_pad_s,
+    )
 
     return AnalysisResult(
         schema_version=SCHEMA_VERSION,  # type: ignore[arg-type]

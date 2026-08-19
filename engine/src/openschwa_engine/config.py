@@ -24,12 +24,19 @@ def _resource_root() -> Path:
 REPO_ROOT = _resource_root()
 
 
+def _default_model_dir() -> Path:
+    repo_models = REPO_ROOT / ".models"
+    if repo_models.is_dir():
+        return repo_models
+    return Path(platformdirs.user_cache_dir("openschwa")) / "models"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="OPENSCHWA_")
 
     host: str = "127.0.0.1"  # localhost only; never bind wider by default
     port: int = 8577  # fixed unusual default; server auto-increments on conflict
-    model_dir: Path = Path(platformdirs.user_cache_dir("openschwa")) / "models"
+    model_dir: Path = _default_model_dir()
     content_dir: Path = REPO_ROOT / "content" / "packs"
     content_schema_path: Path = REPO_ROOT / "content" / "schema" / "exercise.schema.json"
     cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
@@ -61,7 +68,13 @@ class Settings(BaseSettings):
     #: interval is scored by it rather than by the aligner's posteriors; when
     #: unset or unavailable, the engine falls back to aligner-based contrast
     #: scoring. Null means "use the alignment model" (the M0/M1 behavior).
-    contrast_model_id: str | None = None
+    contrast_model_id: str | None = "tinyschwa-v1"
+
+    #: Context padding on each side of the aligned focus phone when the
+    #: contrast judge scores it. The judge was trained with 0.10; a window
+    #: experiment (coarticulation false positives) can override it via
+    #: OPENSCHWA_FOCUS_PAD_S without a retrain.
+    focus_pad_s: float = 0.10
 
     #: Load the acoustic model at startup rather than on the first recording.
     #: Disable in tests and tooling that never analyse audio.
