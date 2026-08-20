@@ -119,6 +119,7 @@ def extract(
     flat: list[np.ndarray] = []
     shard_number = 0
     frames_total = 0
+    shard_frames = 0  # offsets are PER-SHARD: each .npy starts at row 0
     extracted = 0
     pending: list[dict[str, object]] = []
     pending_samples = 0
@@ -147,8 +148,8 @@ def extract(
         )
         pending_samples += samples.size
         if len(pending) >= BATCH_MAX_CLIPS or pending_samples >= BATCH_MAX_SAMPLES:
-            frames_total = _flush_batch(
-                encoder, device, pending, shard, flat, frames_total, feat_dir
+            frames_total, shard_frames = _flush_batch(
+                encoder, device, pending, shard, flat, frames_total, shard_frames, feat_dir
             )
             extracted += len(pending)
             pending = []
@@ -158,7 +159,9 @@ def extract(
                 "extracted %d clips (%.1f h of features)", extracted, frames_total * 0.02 / 3600
             )
     if pending:
-        frames_total = _flush_batch(encoder, device, pending, shard, flat, frames_total, feat_dir)
+        frames_total, shard_frames = _flush_batch(
+            encoder, device, pending, shard, flat, frames_total, shard_frames, feat_dir
+        )
         extracted += len(pending)
     if shard:
         _write_shard(feat_dir, shard_number, shard, flat)
@@ -173,8 +176,9 @@ def _flush_batch(
     shard: list[dict[str, object]],
     flat: list[np.ndarray],
     frames_total: int,
+    shard_frames: int,
     feat_dir: Path,
-) -> int:
+) -> tuple[int, int]:
     """One batched encoder forward: pad, run, unbatch into shard entries.
 
     The attention mask is NOT optional: without it every clip's frames attend
@@ -182,6 +186,12 @@ def _flush_batch(
     clips' audio. The head then trains on batch-contaminated features while
     inference feeds clean single clips - the exported ear decodes garbage
     (raw top-1 4% on the first exam was exactly this).
+
+    Offsets are PER-SHARD (`shard_frames`): each shard's .npy starts at row 0,
+    and a clip's `start` is its offset inside ITS shard. A global accumulator
+    here poisoned every shard after the first - clips sliced past the array
+    end, CTCLoss got zero-length inputs, and training died with
+    'invalid configuration argument' on random batches.
     """
     max_len = max(int(p["samples"].size) for p in pending)
     padded = torch.zeros(len(pending), max_len, dtype=torch.float32)
@@ -203,12 +213,13 @@ def _flush_batch(
             {
                 "id": str(entry["id"]),
                 "client_id": str(entry["client_id"]),
-                "start": frames_total,
+                "start": shard_frames,
                 "length": int(feat.shape[0]),
                 "tokens": str(entry["tokens"]),
                 "split": _client_split(str(entry["client_id"])),
             }
         )
+        shard_frames += feat.shape[0]
         frames_total += feat.shape[0]
     while len(shard) >= SHARD_CLIPS:
         head = shard[:SHARD_CLIPS]
@@ -217,7 +228,8 @@ def _flush_batch(
         del flat[:SHARD_CLIPS]
         number = len(list(feat_dir.glob("shard-*.npy")))
         _write_shard(feat_dir, number, head, write_flat)
-    return frames_total
+        shard_frames = 0
+    return frames_total, shard_frames
 
 
 def _write_shard(
@@ -299,8 +311,11 @@ def train(
     def _ctc_valid(ref: ClipRef) -> bool:
         """CTC requires more input frames than target tokens per item; a
         short fast clip with a long sentence violates it and CTCLoss dies
-        with 'invalid configuration argument' mid-epoch."""
-        return len(ref.clip["tokens"].split()) < int(ref.clip["length"])
+        with 'invalid configuration argument' mid-epoch. Zero-length
+        features (a corrupt shard offset) die the same way - never let them
+        reach the kernel."""
+        length = int(ref.clip["length"])
+        return length > 0 and len(ref.clip["tokens"].split()) < length
 
     train_refs: list[ClipRef] = []
     val_refs: list[ClipRef] = []
