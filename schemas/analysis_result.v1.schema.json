@@ -471,6 +471,18 @@
           ],
           "default": null,
           "title": "Median Hz"
+        },
+        "octave_error_rate": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Octave Error Rate"
         }
       },
       "required": [

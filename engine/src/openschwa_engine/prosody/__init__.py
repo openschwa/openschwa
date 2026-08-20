@@ -7,6 +7,14 @@ in M2, once reference recordings exist — the contract already carries the
 `reference`, `dtw_distance`, and `nuclear_tone` fields they populate.
 """
 
-from openschwa_engine.prosody.f0 import F0Track, track
+from openschwa_engine.prosody.compare import contour_match, dtw_distance, nuclear_tone
+from openschwa_engine.prosody.f0 import F0Track, reference_track, track
 
-__all__ = ["F0Track", "track"]
+__all__ = [
+    "F0Track",
+    "contour_match",
+    "dtw_distance",
+    "nuclear_tone",
+    "reference_track",
+    "track",
+]

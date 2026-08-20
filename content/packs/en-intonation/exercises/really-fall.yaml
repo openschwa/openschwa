@@ -1,0 +1,16 @@
+id: en.intonation.really.fall
+type: intonation
+title: "*really.* — agreeing, falling"
+lang: en
+text: "really."
+ipa: "ɹɪli"
+phones:
+  - ph: "ɹ"
+  - ph: "ɪ"
+  - ph: "l"
+  - ph: "i"
+prosody:
+  nuclear_syllable_index: 1
+  expected_tone: fall
+reference_audio: audio/really-fall-ref.wav
+learner_notes: "The pitch settles low on the final syllable."

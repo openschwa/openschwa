@@ -1,0 +1,16 @@
+id: en.intonation.please.fall
+type: intonation
+title: "*please.* — a statement falls"
+lang: en
+text: "please."
+ipa: "pliz"
+phones:
+  - ph: "p"
+  - ph: "l"
+  - ph: "i"
+  - ph: "z"
+prosody:
+  nuclear_syllable_index: 0
+  expected_tone: fall
+reference_audio: audio/please-fall-ref.wav
+learner_notes: "Let the pitch step down on the last word — the voice finishes low."

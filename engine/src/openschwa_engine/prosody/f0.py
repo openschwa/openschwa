@@ -18,9 +18,12 @@ tone classification are M2 — the shapes they need are already in the contract.
 import logging
 import warnings
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
+
+from openschwa_engine.audio import MODEL_SAMPLE_RATE
 
 log = logging.getLogger(__name__)
 
@@ -42,6 +45,9 @@ class F0Track:
     start_s: float
     semitones: tuple[float | None, ...]
     median_hz: float | None
+    #: Frames that were rescued from an octave jump or dropped as
+    #: unrecoverable - the M2 bar's octave-error tripwire counts these.
+    octave_error_frames: int = 0
 
     @property
     def voiced_fraction(self) -> float:
@@ -69,19 +75,22 @@ def _rolling_median(values: npt.NDArray[np.float64], window: int) -> npt.NDArray
         return np.nanmedian(windows, axis=1)
 
 
-def _fix_octave_jumps(hz: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+def _fix_octave_jumps(hz: npt.NDArray[np.float64]) -> tuple[npt.NDArray[np.float64], int]:
     """Halve or double isolated frames that sit an octave off their neighbours.
 
     Frames that cannot be rescued into the local range are marked unvoiced: a
-    gap in the contour is honest, a wrong pitch point is not.
+    gap in the contour is honest, a wrong pitch point is not. Returns the
+    cleaned contour and the number of frames touched (rescued or dropped) -
+    the M2 bar's octave-error accounting.
     """
     voiced = hz > 0
     if voiced.sum() < 3:
-        return hz
+        return hz, 0
 
     working = np.where(voiced, hz, np.nan)
     local = _rolling_median(working, _MEDIAN_WINDOW)
     result = working.copy()
+    touched = 0
 
     for factor in (2.0, 0.5):
         deviation = np.abs(12.0 * np.log2(result / local))
@@ -91,13 +100,38 @@ def _fix_octave_jumps(hz: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
         corrected = result * factor
         improved = candidates & (np.abs(12.0 * np.log2(corrected / local)) < _OCTAVE_JUMP_SEMITONES)
         result = np.where(improved, corrected, result)
+        touched += int(improved.sum())
 
     deviation = np.abs(12.0 * np.log2(result / local))
     unrescuable = np.isfinite(deviation) & (deviation > _OCTAVE_JUMP_SEMITONES)
     if unrescuable.any():
         log.debug("dropped %d unrecoverable F0 frames", int(unrescuable.sum()))
+    touched += int(unrescuable.sum())
     result[unrescuable] = np.nan
-    return np.where(np.isfinite(result), result, 0.0)
+    return np.where(np.isfinite(result), result, 0.0), touched
+
+
+def reference_track(exercise: Any) -> F0Track | None:
+    """The teacher's contour for an exercise's reference recording, or None.
+
+    Duck-typed: anything exposing has_reference_audio and
+    reference_audio_path works (the Exercise dataclass in content/loader.py,
+    or a test stub). A declared-but-absent reference is the one non-fatal
+    case the content loader allows - the teacher recordings do not exist yet.
+    """
+    if not exercise.has_reference_audio:
+        return None
+    from openschwa_engine.audio import decode_wav, resample_to_model_rate
+
+    try:
+        decoded = decode_wav(exercise.reference_audio_path.read_bytes())
+    except Exception as exc:  # a broken reference must not break the analysis
+        log.warning(
+            "reference audio %s cannot be decoded (%s)", exercise.reference_audio_path, exc
+        )
+        return None
+    samples_16k = resample_to_model_rate(decoded.samples, decoded.sample_rate)
+    return track(samples_16k, MODEL_SAMPLE_RATE)
 
 
 def track(samples: npt.NDArray[np.float32], sample_rate: int) -> F0Track | None:
@@ -127,7 +161,9 @@ def track(samples: npt.NDArray[np.float32], sample_rate: int) -> F0Track | None:
     ceiling = float(np.clip(1.5 * high, floor + 50.0, _ABSOLUTE_CEILING_HZ))
 
     pitch = sound.to_pitch(time_step=_TIME_STEP_S, pitch_floor=floor, pitch_ceiling=ceiling)
-    hz = _fix_octave_jumps(np.asarray(pitch.selected_array["frequency"], dtype=np.float64))
+    hz, octave_errors = _fix_octave_jumps(
+        np.asarray(pitch.selected_array["frequency"], dtype=np.float64)
+    )
 
     voiced = hz > 0
     if voiced.sum() < 3:
@@ -145,4 +181,5 @@ def track(samples: npt.NDArray[np.float32], sample_rate: int) -> F0Track | None:
             for value, is_voiced in zip(semitone_values, voiced, strict=True)
         ),
         median_hz=round(median, 2),
+        octave_error_frames=octave_errors,
     )

@@ -1,0 +1,16 @@
+id: en.intonation.please.rise
+type: intonation
+title: "*please?* — a question rises"
+lang: en
+text: "please?"
+ipa: "pliz"
+phones:
+  - ph: "p"
+  - ph: "l"
+  - ph: "i"
+  - ph: "z"
+prosody:
+  nuclear_syllable_index: 0
+  expected_tone: rise
+reference_audio: audio/please-rise-ref.wav
+learner_notes: "The voice glides UP on the last word — that is what makes it a question."

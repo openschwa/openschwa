@@ -123,6 +123,7 @@ export interface F0Track {
    */
   semitones: (number | null)[];
   median_hz?: number | null;
+  octave_error_rate?: number | null;
 }
 export interface NuclearTone {
   detected: "fall" | "rise" | "fall_rise" | "level";

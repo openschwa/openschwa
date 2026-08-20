@@ -1,0 +1,16 @@
+id: en.intonation.really.rise
+type: intonation
+title: "*really?* — surprised, rising"
+lang: en
+text: "really?"
+ipa: "ɹɪli"
+phones:
+  - ph: "ɹ"
+  - ph: "ɪ"
+  - ph: "l"
+  - ph: "i"
+prosody:
+  nuclear_syllable_index: 1
+  expected_tone: rise
+reference_audio: audio/really-rise-ref.wav
+learner_notes: "A strong rise on the last syllable says you are surprised."

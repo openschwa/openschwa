@@ -128,6 +128,9 @@ class F0Track(_Model):
         description="F0 in semitones relative to the speaker's median; null = unvoiced frame."
     )
     median_hz: float | None = None
+    #: Share of frames the pitch tracker had to rescue from (or drop to) an
+    #: octave jump - the M2 bar's octave-error tripwire (< 2% of voiced frames).
+    octave_error_rate: float | None = None
 
 
 class NuclearTone(_Model):

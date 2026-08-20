@@ -147,8 +147,9 @@ def test_rejects_invalid_yaml(tmp_path):
 
 
 def test_the_committed_pack_loads(tmp_path):
-    """The real en-dh-z pack must satisfy every rule above."""
+    """The real packs must satisfy every rule above."""
     settings = Settings()
     library = load_library(settings.content_dir, settings.content_schema_path)
     assert library.get("en.seg.dh-z.this") is not None
-    assert {p.id for p in library.packs} == {"en-dh-z"}
+    assert library.get("en.intonation.please.fall") is not None
+    assert {p.id for p in library.packs} == {"en-dh-z", "en-intonation"}

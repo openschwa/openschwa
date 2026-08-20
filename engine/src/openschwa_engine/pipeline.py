@@ -24,7 +24,13 @@ from openschwa_engine.content import Exercise
 from openschwa_engine.feedback import compose
 from openschwa_engine.models.phone_set import PhoneMap, PhoneSetError
 from openschwa_engine.models.registry import ModelError, ModelRegistry
-from openschwa_engine.prosody import track
+from openschwa_engine.prosody import F0Track as ProsodyF0Track
+from openschwa_engine.prosody import (
+    dtw_distance,
+    nuclear_tone,
+    reference_track,
+    track,
+)
 from openschwa_engine.schemas.analysis import (
     SCHEMA_VERSION,
     Alignment,
@@ -33,6 +39,7 @@ from openschwa_engine.schemas.analysis import (
     AudioQuality,
     ContrastResult,
     F0Track,
+    NuclearTone,
     Phone,
     Prosody,
     Word,
@@ -319,18 +326,42 @@ def analyze_recording(
     )
 
     f0 = track(audio.samples_16k, 16_000)
+
+    def _schema_track(track: ProsodyF0Track) -> F0Track:
+        frames = len(track.semitones)
+        return F0Track(
+            hop_s=track.hop_s,
+            start_s=track.start_s,
+            semitones=list(track.semitones),
+            median_hz=track.median_hz,
+            octave_error_rate=(
+                round(track.octave_error_frames / frames, 4) if frames else None
+            ),
+        )
+
+    reference = reference_track(exercise)
     prosody = (
         Prosody(
-            f0=F0Track(
-                hop_s=f0.hop_s,
-                start_s=f0.start_s,
-                semitones=list(f0.semitones),
-                median_hz=f0.median_hz,
-            )
+            f0=_schema_track(f0),
+            reference=_schema_track(reference) if reference is not None else None,
         )
         if f0
         else None
     )
+    if prosody is not None:
+        assert f0 is not None  # prosody exists only when the track does
+        detected, confidence = nuclear_tone(f0)
+        expected = exercise.prosody.expected_tone if exercise.prosody is not None else None
+        prosody.nuclear_tone = NuclearTone(
+            detected=detected,  # type: ignore[arg-type]
+            expected=expected,  # type: ignore[arg-type]
+            match=detected == expected if expected is not None else None,
+            confidence=round(confidence, 3),
+        )
+        if reference is not None:
+            assert f0 is not None
+            distance = dtw_distance(f0, reference)
+            prosody.dtw_distance = round(distance, 4) if distance is not None else None
 
     contrast = _load_contrast(registry, settings)
     contrasts = _contrasts(
