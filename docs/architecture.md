@@ -260,6 +260,37 @@ load. First pack: `en-dh-z` (/ð/ → /z/).
   recipe: ~0.94 AUC, i.e. roughly double the remaining separation gap.
   Evidence: eval/reports-v13/ … eval/reports-v23-final/. **Accept criterion
   NOT met — recorded, not waived.**
+
+  **Round three — honest evaluation and the Stage 3 retrain (v24-v26).**
+  Three corrections landed first: the calibration can only be written by a
+  bar-passing exam (Stage 0), the split is now **three-way and
+  speaker-disjoint** — per L1, four speakers are deterministically assigned
+  test/cal/train/train, so no speaker's voice leaks across pools, and the
+  threshold fit uses only cal (Stage 1) — and the training recipe was fixed:
+  one optimizer with warmup+cosine across the whole run, the conv feature
+  encoder frozen forever, exam-shaped model selection, per-run provenance
+  (Stage 3, runs/*/run_config.json). Two real bugs were found and fixed
+  along the way: a LambdaLR base-learning-rate capture bug that pinned the
+  transformer at lr 0 (every Stage 3 run trained the head only — regression
+  test added), and a closed-set export that never emitted correct /v/
+  tokens.
+  **The honest re-baseline delivered the finding that reframes everything
+  above: the v13-v23 numbers were inflated by speaker leakage.** The old
+  utterance-level split let the model hear the test speakers' voices in
+  training; the old v23 model measured 0.818 l2arctic AUC on the honest pool
+  precisely because it had been trained on those speakers. The Stage 3 r3
+  model — same closed-set recipe, the fixed optimizer, trained on
+  *disjoint* speakers — scores **l2arctic AUC 0.596, pooled 0.692, P 0.33 at
+  recall 0.40, and zero recall at precision 0.90**. The open-set
+  {ð, z, d, other} line (r1/r2) scored 0.56-0.59. **The honest
+  speaker-generalization ceiling with the available data is ≈ 0.7 pooled /
+  0.6 l2arctic** — the bar needs ≈ 0.94. The remaining gap is data: twelve
+  disjoint training speakers is not enough for accent-generalization, and
+  the label-disagreement wall (expert-correct Mandarin /ð/ the acoustics
+  render sibilant) survives every recipe. No calibration was committed; the
+  engine stays retry-only. Evidence: eval/reports-v24-honest-baseline/,
+  eval/reports-v25-r1/, eval/reports-v25-r2/, eval/reports-v26-r3/.
+  **Accept criterion NOT met — recorded, not waived.**
   ("please." / "please?" / "please!"). Accept: ≥ 90% fall-vs-rise on a
   purpose-recorded ~100-utterance set; octave errors < 2% of voiced frames.
   ~~Plus the packaging spike~~ — **done early**: `just package` produces a
