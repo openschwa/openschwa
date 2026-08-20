@@ -47,8 +47,11 @@ NUM_CLASSES = len(VOCAB)  # 40
 BLANK = 0
 SHARD_CLIPS = 2000
 FEATURE_DIM = 1024
-BATCH_MAX_CLIPS = 24
-BATCH_MAX_SAMPLES = 320_000  # cap a batch at ~20 s of audio
+BATCH_MAX_CLIPS = 8
+# Cap a batch at ~15 s of audio: attention memory grows with B x T^2, and
+# 8 x (750 encoder frames)^2 x 16 heads x 24 layers x bf16 ~= 3.5 GB -
+# comfortably inside the 4060's 8 GB. Bigger batches thrash and slow down.
+BATCH_MAX_SAMPLES = 240_000
 
 
 @dataclass(frozen=True)
