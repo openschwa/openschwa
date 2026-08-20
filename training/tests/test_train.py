@@ -12,6 +12,7 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
+import openschwa_training.train as train_mod  # noqa: E402
 from openschwa_training.train import (  # noqa: E402
     VOCAB,
     TrainOptions,
@@ -19,7 +20,6 @@ from openschwa_training.train import (  # noqa: E402
     build_model,
     train,
 )
-import openschwa_training.train as train_mod  # noqa: E402
 
 
 def test_balanced_batches_carry_all_four_classes():
@@ -116,9 +116,12 @@ def test_base_weights_change_during_unfrozen_steps(tmp_path, monkeypatch):
     base = tiny_base(tmp_path)
     data = tiny_dataset(tmp_path)
     model = build_model(base, "cpu")
+    # A param that always receives gradients (masked_spec_embed does not on
+    # short unmasked sequences, which made the first version of this test a
+    # false positive in the other direction).
     param_name, before = None, None
     for name, param in model.named_parameters():
-        if "fusion" not in name and "feature_extractor" not in name:
+        if name.startswith("wav2vec2.encoder."):
             param_name, before = name, param.detach().clone()
             break
     monkeypatch.setattr(train_mod, "build_model", lambda b, d: model)
