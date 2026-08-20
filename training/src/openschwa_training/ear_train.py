@@ -365,7 +365,7 @@ def train(
     return {"history": history}
 
 
-def _decode_ctc(preds: "list[int] | object") -> list[int]:
+def _decode_ctc(preds: list[int] | object) -> list[int]:
     """Greedy CTC decode: collapse repeats, drop blanks."""
     decoded: list[int] = []
     previous: int | None = None
