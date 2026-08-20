@@ -476,10 +476,15 @@ def train(options: TrainOptions) -> dict[str, object]:
         for n, p in model.named_parameters()
         if "fusion" not in n and "feature_extractor" not in n
     ]
+    # The base group's lr is lr_full from the START: freezing is enforced by
+    # requires_grad alone (_freeze_base), never by lr. Setting it to 0 during
+    # the freeze phase and letting LambdaLR capture that as base_lr pinned
+    # the transformer at lr 0 FOREVER - the Stage 3 r1-r3 collapse (head-only
+    # models) was exactly that bug.
     optimizer = torch.optim.AdamW(
         [
             {"params": head_params, "lr": options.lr_head, "weight_decay": 0.01},
-            {"params": base_params, "lr": 0.0, "weight_decay": 0.01},
+            {"params": base_params, "lr": options.lr_full, "weight_decay": 0.01},
         ],
         lr=options.lr_head,
         weight_decay=0.01,
@@ -505,8 +510,6 @@ def train(options: TrainOptions) -> dict[str, object]:
     for epoch in range(start_epoch, options.epochs):
         freeze = epoch < options.freeze_epochs
         _freeze_base(model, freeze)
-        optimizer.param_groups[0]["lr"] = options.lr_head
-        optimizer.param_groups[1]["lr"] = 0.0 if freeze else options.lr_full
         model.train()
         rng = random.Random(options.seed * 1000 + epoch)
         total_loss = 0.0

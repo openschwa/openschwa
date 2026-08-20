@@ -12,7 +12,14 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
-from openschwa_training.train import VOCAB, TrainOptions, balanced_batches, train  # noqa: E402
+from openschwa_training.train import (  # noqa: E402
+    VOCAB,
+    TrainOptions,
+    balanced_batches,
+    build_model,
+    train,
+)
+import openschwa_training.train as train_mod  # noqa: E402
 
 
 def test_balanced_batches_carry_all_four_classes():
@@ -99,6 +106,36 @@ def tiny_dataset(tmp_path: Path) -> Path:
         writer.writeheader()
         writer.writerows(rows)
     return data
+
+
+def test_base_weights_change_during_unfrozen_steps(tmp_path, monkeypatch):
+    """Regression for the Stage 3 r1-r3 collapse: LambdaLR captured base_lr=0
+    at scheduler creation (the freeze-phase value), pinning the transformer at
+    lr 0 forever - every run trained the head only. A base weight must move
+    once the unfreeze epochs start."""
+    base = tiny_base(tmp_path)
+    data = tiny_dataset(tmp_path)
+    model = build_model(base, "cpu")
+    param_name, before = None, None
+    for name, param in model.named_parameters():
+        if "fusion" not in name and "feature_extractor" not in name:
+            param_name, before = name, param.detach().clone()
+            break
+    monkeypatch.setattr(train_mod, "build_model", lambda b, d: model)
+    train(
+        TrainOptions(
+            data_dirs=[data],
+            base_model_dir=base,
+            out_dir=tmp_path / "out",
+            epochs=3,
+            freeze_epochs=1,
+            batch_size=4,
+            max_steps=5,
+            max_segment_s=0.1,
+        )
+    )
+    after = dict(model.named_parameters())[param_name]
+    assert not torch.equal(before, after)
 
 
 def test_smoke_training_runs_end_to_end(tmp_path):
