@@ -56,7 +56,8 @@ Two guides, depending on who's reading: [for coders](docs/architecture.md) ·
   /ð/ judge line ended as a **documented negative** (speaker-leakage
   corrected, honest ceiling ≈ 0.69 pooled AUC, bar not met, no verdicts
   ship) — see [eval/reports/](eval/reports/) and
-  [docs/architecture.md](docs/architecture.md)
+  [docs/architecture.md](docs/architecture.md); models & data research for
+  the re-attempt: [docs/research/models-and-data-post-m1.md](docs/research/models-and-data-post-m1.md)
 - **M2** — intonation: nuclear-tone verdicts + DTW contour overlay, gated by
   its own bar (≥ 90% fall-vs-rise on a purpose-recorded set)
 - **M3** — annotated spectrograms (VOT, voicing)
