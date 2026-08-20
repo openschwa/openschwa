@@ -27,6 +27,15 @@ block wavs (it was run on the exam machine).
 - `mark_acoustics.py` - the engine's own F0 shape at all 10,200 unit-final
   marked words; "high fall" and "high rise" marks have identical acoustic
   distributions (33/24 vs 34/24) - the marks are decoupled from the glide.
+- `consensus3.py` - corrected B-vs-G agreement with fall-rise counted as a
+  disagreement: binary fall/rise agreement **90.3%** (223/247), fall
+  reproducibility 81.6% - the binary labels are adequate for the 90% bar.
+- `slopes.py` / `windows.py` / `smoothglide.py` / `gapruns.py` - why the
+  engine fails despite adequate labels: terminal slopes median -4.3 st/s for
+  falls, +0.1 for rises; every window definition gives falls and rises
+  identical slope distributions; the short-slice F0 tracks are octave-chaotic
+  (median in-run slope -89 st/s for both classes) - the fix is at the
+  pitch-extraction level, not the threshold level.
 
 Legend (SEC manual, FIG2, via ICAME's static copy): 14 prosodic characters -
 5 tones x high/low {fall, rise, level, fall-rise, rise-fall} + stress circle +

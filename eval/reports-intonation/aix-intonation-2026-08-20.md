@@ -29,25 +29,45 @@ Predict-fall baseline on fall+rise: **94.1%** (the corpus is 17:1 fall-heavy;
 raw accuracy on this set is trivially gamed - the honest read is per-class).
 High-confidence (>= 0.9) detections: 2,641 units at 50.9% agreement with the labels.
 
-## The ground truth is the story
+## The ground truth is the story (corrected)
 
 Before the run, the labels themselves were audited:
 
-- **Inter-annotator ceiling.** 98 passages were transcribed twice (BJW/GOK).
+- **Multi-class ceiling.** 98 passages were transcribed twice (BJW/GOK).
   On units with *identical boundaries*, the two experts agree on the nuclear
   tone **36.2%** overall - 62% for falls, 14% fall-rise, 0/3 rise; restricted
-  to fall/rise/fall-rise: **50.0%** (n=96).
-- **Marks vs acoustics.** The engine's own F0 shape at 10,200 unit-final
-  marked words shows the "high fall" (\`) and "high rise" (/) marks have
-  *identical* acoustic distributions (33% falling / 24% rising vs 34% / 24%).
-  The marks are largely decoupled from the measurable glide.
-- **Imbalance.** 5,077 fall vs 303 rise units - news reading barely rises.
+  to fall/rise/fall-rise: **50.0%** (n=96). Fall-vs-fall-rise is the mushy
+  boundary (the SEC manual itself flags the "shallow fall" ambiguity).
+- **Binary ceiling (the bar's own question).** On time-matched units the
+  annotators agree on fall-vs-rise **90.3%** (223/247 when both commit to
+  fall or rise); fall reproducibility is 81.6% (222/272, leaking mostly to
+  fall-rise). **The binary labels are adequate for the 90% bar.**
+- **Imbalance.** 5,077 fall vs 303 rise units - news reading barely rises,
+  so a predict-fall dummy scores 94%; only balanced/per-class numbers are
+  meaningful.
 
-The engine agrees with BJW 38.0% and with GOK 37.6% - i.e. it performs **at
-the human inter-annotator ceiling** on this corpus (36-50%). No classifier
-can hit the roadmap's 90% fall-vs-rise bar against labels that reproduce
-themselves at ~36-50%; the 37.8% number measures the labels' noise floor,
-not the DSP. The octave-error bar is label-free and is met with room to spare.
+The engine agrees with BJW 37.1% and with GOK 35.7% (no better annotator
+exists - dropping either changes nothing; each passage already carries a
+single annotator's labels). That is **far below** the ~82-90% binary label
+ceiling: the engine, not the labels, is the failure. On the 198 cleanest
+agreed-fall units the engine scores only 27.8%.
+
+## Where the engine fails (follow-up diagnostics)
+
+- Terminal-window slopes: falls median **-4.3 st/s** (threshold -8), rises
+  median **+0.1** - the glide is not in the terminal window at all.
+- No window definition recovers it: whole-slice, first-0.3s, max-|slope|
+  0.2s window, median-smoothed variants all give fall and rise *identical*
+  distributions (test accuracy 56-68%, below the 94% predict-fall baseline).
+- Root cause: the short-slice F0 tracks are octave-chaotic. Voicing gaps
+  jump 30-100 st (e.g. 21.4 -> 29.6 -> None -> 0.0), and even *within*
+  contiguous voiced runs the median local slope is **-89 st/s for both
+  classes** - the track oscillates octaves constantly on creaky broadcast
+  voices in 0.55 s of context. No window, threshold or smoothing on top of
+  this track can reach the bar; the fix is at the pitch-extraction level
+  (Praat octave handling / longer context), which is a research task, not a
+  threshold tweak. The octave-error bar stays met (0.04%) - it measures
+  adjacent-frame rescues, not gap-crossing jumps.
 
 ## What changed for this run
 
@@ -59,10 +79,13 @@ not the DSP. The octave-error bar is label-free and is met with room to spare.
 
 ## Verdict
 
-M2 bar **not met on Aix-MARSEC**, and not met *by construction*: the corpus
-labels cannot certify a 90% tone-class bar. Aix remains the label-free
-octave-error evidence (bar met) and a descriptive reality check. The
-fall-vs-rise bar needs controlled recordings: scripted tone contrasts
-recorded and verified by listening, the app's real use case. The Aix-MARSEC
-label conventions, the ceiling analysis scripts and the mark census live in
-`eval/scratch/`.
+M2 bar **not met on Aix-MARSEC**, and the engine is the failure: the binary
+labels are ~82-90% reproducible, but the engine's short-slice pitch tracks
+carry no glide signal at all (identical slope statistics for falls and
+rises). Two honest paths remain: (1) pitch-extraction research (Praat
+octave/gap handling on short, creaky audio), retested on Aix as a research
+benchmark; (2) the fall-vs-rise bar moves to controlled recordings -
+scripted tone contrasts, recorded and verified by listening - which is the
+app's real use case and the material human testing needs anyway. Aix remains
+the label-free octave-error evidence (bar met). The label conventions, the
+ceiling analysis and the slope diagnostics live in `eval/scratch/`.
