@@ -47,6 +47,8 @@ NUM_CLASSES = len(VOCAB)  # 40
 BLANK = 0
 SHARD_CLIPS = 2000
 FEATURE_DIM = 1024
+BATCH_MAX_CLIPS = 24
+BATCH_MAX_SAMPLES = 320_000  # cap a batch at ~20 s of audio
 
 
 @dataclass(frozen=True)
@@ -87,7 +89,12 @@ def load_manifest(data_dir: Path) -> list[dict[str, object]]:
 def extract(
     data_dir: Path, base_model_dir: Path, out_dir: Path, *, max_clips: int | None = None
 ) -> dict[str, object]:
-    """Frozen-encoder pass: cache last hidden states, sharded, resumable."""
+    """Frozen-encoder pass: cache last hidden states, sharded, resumable.
+
+    Clips are batched (pad to the batch's longest, cap by total samples) -
+    single-sample forwards cost ~1 s each on the 4060 and would make 28k
+    clips an eight-hour stage; batched, the same stage is well under an hour.
+    """
     from transformers import Wav2Vec2Model  # noqa: PLC0415 - the ear env only
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -110,6 +117,8 @@ def extract(
     shard_number = 0
     frames_total = 0
     extracted = 0
+    pending: list[dict[str, object]] = []
+    pending_samples = 0
     for row in rows:
         clip_id = str(row["id"])
         if clip_id in done:
@@ -125,41 +134,77 @@ def extract(
                 )
                 / 32768.0
             )
-        audio = torch.from_numpy(samples).unsqueeze(0).to(device)
-        autocast = (
-            torch.autocast(device, dtype=torch.bfloat16) if device == "cuda" else nullcontext()
-        )
-        with torch.inference_mode(), autocast:
-            hidden = encoder(audio).last_hidden_state[0]  # [frames, 1024]
-        hidden_f16 = hidden.float().cpu().numpy().astype(np.float16)
-        flat.append(hidden_f16)
-        shard.append(
+        pending.append(
             {
                 "id": clip_id,
                 "client_id": str(row["client_id"]),
-                "start": frames_total,
-                "length": int(hidden_f16.shape[0]),
                 "tokens": str(row["tokens"]),
-                "split": _client_split(str(row["client_id"])),
+                "samples": samples,
             }
         )
-        frames_total += hidden_f16.shape[0]
-        extracted += 1
-        if len(shard) >= SHARD_CLIPS:
-            _write_shard(feat_dir, shard_number, shard, flat)
-            shard_number += 1
-            shard = []
-            flat = []
-        if extracted % 100 == 0:
-            log.info(
-                "extracted %d clips (%.1f h of features)",
-                extracted,
-                frames_total * 0.02 / 3600,
+        pending_samples += samples.size
+        if len(pending) >= BATCH_MAX_CLIPS or pending_samples >= BATCH_MAX_SAMPLES:
+            frames_total = _flush_batch(
+                encoder, device, pending, shard, flat, frames_total, feat_dir
             )
+            extracted += len(pending)
+            pending = []
+            pending_samples = 0
+        if extracted % 200 == 0 and extracted:
+            log.info(
+                "extracted %d clips (%.1f h of features)", extracted, frames_total * 0.02 / 3600
+            )
+    if pending:
+        frames_total = _flush_batch(encoder, device, pending, shard, flat, frames_total, feat_dir)
+        extracted += len(pending)
     if shard:
         _write_shard(feat_dir, shard_number, shard, flat)
         shard_number += 1
     return {"shards": shard_number, "extracted": extracted}
+
+
+def _flush_batch(
+    encoder: object,
+    device: str,
+    pending: list[dict[str, object]],
+    shard: list[dict[str, object]],
+    flat: list[np.ndarray],
+    frames_total: int,
+    feat_dir: Path,
+) -> int:
+    """One batched encoder forward: pad, run, unbatch into shard entries."""
+    max_len = max(int(p["samples"].size) for p in pending)
+    padded = torch.zeros(len(pending), max_len, dtype=torch.float32)
+    for position, entry in enumerate(pending):
+        samples = entry["samples"]
+        padded[position, : samples.size] = torch.from_numpy(samples)
+    padded = padded.to(device)
+    autocast = torch.autocast(device, dtype=torch.bfloat16) if device == "cuda" else nullcontext()
+    with torch.inference_mode(), autocast:
+        hidden = encoder(padded).last_hidden_state  # [B, T, 1024]
+    valid = [int(encoder._get_feat_extract_output_lengths(p["samples"].size)) for p in pending]
+    for position, entry in enumerate(pending):
+        feat = hidden[position, : valid[position]].float().cpu().numpy().astype(np.float16)
+        flat.append(feat)
+        shard.append(
+            {
+                "id": str(entry["id"]),
+                "client_id": str(entry["client_id"]),
+                "start": frames_total,
+                "length": int(feat.shape[0]),
+                "tokens": str(entry["tokens"]),
+                "split": _client_split(str(entry["client_id"])),
+            }
+        )
+        frames_total += feat.shape[0]
+    while len(shard) >= SHARD_CLIPS:
+        head = shard[:SHARD_CLIPS]
+        write_flat = flat[:SHARD_CLIPS]
+        del shard[:SHARD_CLIPS]
+        del flat[:SHARD_CLIPS]
+        number = len(list(feat_dir.glob("shard-*.npy")))
+        _write_shard(feat_dir, number, head, write_flat)
+    return frames_total
 
 
 def _write_shard(
