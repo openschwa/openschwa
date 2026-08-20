@@ -40,3 +40,4 @@ eval/reports/checkpoints/
 # Workspace-local model cache (sandbox-friendly OPENSCHWA_MODEL_DIR)
 .models/
 .cache/
+eval/scratch/checkpoints/
