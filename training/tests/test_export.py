@@ -154,6 +154,26 @@ def test_held_out_utterances_are_never_exported(tmp_path):
     assert sum(1 for _ in (out / "labels.csv").open()) == 1  # header only
 
 
+def test_closed_alphabet_exports_v_and_skips_other_realizations(tmp_path):
+    """The v22-era closed set: correct /v/ feeds the v class, and a /ð/->/t/
+    substitution is skipped rather than folded."""
+    out = tmp_path / "out"
+    manifest = export(
+        ExportOptions(
+            corpus(tmp_path, _train_stem(), _speaker_with_role("train")),
+            out,
+            val_fraction=0.0,
+            alphabet="closed",
+        )
+    )
+    rows = list(csv.DictReader((out / "labels.csv").open(encoding="utf-8")))
+    labels = sorted(r["label"] for r in rows)
+    assert labels == ["d", "v", "z", "z", "ð"]
+    assert manifest["class_counts"] == {"ð": 1, "z": 2, "d": 1, "v": 1}
+    assert manifest["skipped"]["realized /t/"] == 1
+    assert manifest["skipped"]["deleted"] == 1
+
+
 def test_calibration_pool_utterances_are_never_exported(tmp_path):
     """The cal carve is the harness's threshold-fitting pool: like the test
     split, it must never leak into training data (Stage 1 lockstep)."""

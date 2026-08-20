@@ -69,13 +69,13 @@ def _class_label(token: PhoneToken, alphabet: tuple[str, ...]) -> str | None:
     """
     open_set = "other" in alphabet
     if token.label == "correct":
-        if token.phone in TARGET_PHONES:
+        if token.phone in alphabet:
             return token.phone
         if open_set and token.phone in OTHER_SOURCE_PHONES:
             return "other"
         return None
     if token.label == "substituted" and token.phone == "ð":
-        if token.substituted_with in ("z", "d"):
+        if token.substituted_with and token.substituted_with in alphabet:
             return token.substituted_with
         if open_set and token.substituted_with:
             return "other"
@@ -136,7 +136,11 @@ def export(options: ExportOptions) -> dict[str, object]:
     # phones feed their own class, correct tokens of the widened source set
     # feed "other", and substituted /ð/ tokens feed the realized phone's
     # class (a /ð/ heard as /z/ IS a /z/).
-    for target in (*TARGET_PHONES, *other_sources):
+    # Closed mode iterates the alphabet itself (correct /v/ tokens feed the
+    # v class); open mode iterates the drilled phones plus the widened source
+    # set (whose correct tokens feed "other").
+    targets = alphabet if options.alphabet == "closed" else (*TARGET_PHONES, *other_sources)
+    for target in targets:
         for utterance in adapter.utterances(target):
             # Only the harness's TRAIN split is exported: the calibration
             # pool feeds the threshold fit and the test pool is the exam.
