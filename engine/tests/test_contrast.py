@@ -242,12 +242,39 @@ def test_heard_is_the_argmax_over_the_closed_set():
     assert result.heard == "ð"
 
 
+def test_heard_uses_the_full_vocabulary_not_just_the_drilled_set():
+    """A full-vocab ear must be able to hear a phone outside {target} +
+    confusions: mass on an unrelated phone wins the hearing even though the
+    closed-set contrast keeps its own bookkeeping."""
+    from dataclasses import replace
+
+    probs = np.full((3, 6), 1e-6)
+    probs[:, 1] = 0.3  # ð
+    probs[:, 2] = 0.2  # z
+    probs[:, 5] = 0.5  # column 5 = an out-of-set phone (vocab 6, no name in map)
+    raw_log = np.log(probs).astype(np.float32)
+    result = score_contrast(raw_log, [0, 1, 2], "ð", ["z", "d", "v"], phone_map())
+    # The closed-set contrast still names /z/ as the best drilled confusion...
+    assert result.best_confusion == "z"
+    assert result.posteriors["ð"] > result.posteriors["z"]
+    # ...and when the winner is an out-of-table token the hearing falls back
+    # to the closed set (the synthetic map has no name for column 5).
+    assert result.heard == "ð"
+    # With a named out-of-set phone the hearing reports it.
+    extended = replace(phone_map(), index_of={**phone_map().index_of, "l": 5})
+    result = score_contrast(raw_log, [0, 1, 2], "ð", ["z", "d", "v"], extended)
+    assert result.heard == "l"
+
+
 def test_hearing_score_is_heard_odds():
-    """log(p_heard / (1 - p_heard)) on the renormalized mass."""
+    """log(p_heard / (1 - p_heard)) on the full-vocabulary mass (blank
+    excluded), not the closed-set renormalization."""
     raw_log = log_probs_for([2, 2, 2], confidence=0.9)
     result = score_contrast(raw_log, [0, 1, 2], "ð", ["z", "d", "v"], phone_map())
-    p = result.posteriors["z"]
-    assert result.hearing_score == pytest.approx(np.log(p / (1.0 - p)), abs=1e-4)
+    # Full vocab: z mass 0.9, four other non-blank columns 0.02 each ->
+    # p_heard = 0.9 / 0.98 (blank excluded, unmapped column included).
+    p_heard = 0.9 / 0.98
+    assert result.hearing_score == pytest.approx(np.log(p_heard / (1.0 - p_heard)), abs=1e-4)
     # A near-tie sits near zero odds: the ear is maximally unsure.
     probs = np.full((4, 6), 1e-6)
     probs[:, 1] = 0.5

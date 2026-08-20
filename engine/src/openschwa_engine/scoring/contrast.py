@@ -49,7 +49,7 @@ class ContrastScore:
     spike_score: float  # the single frame most favouring the best confusion
     vote_fraction: float  # share of label frames where a confusion outvotes the target
     best_confusion: str  # the confusion with the most posterior mass
-    heard: str  # argmax over {target} + confusions - the phone the model heard
+    heard: str  # argmax over the model's full phone vocabulary - what it heard
     hearing_score: float  # log(p_heard / (1 - p_heard)); calibrated into P(heard == realized)
 
 
@@ -96,8 +96,22 @@ def score_contrast(
     posteriors = {name: float(mean[i]) for i, name in enumerate(names)}
     best_confusion = max(confusions, key=lambda c: posteriors[c])
     score = float(np.log((posteriors[best_confusion] + EPS) / (posteriors[target] + EPS)))
-    heard = max(names, key=lambda name: posteriors[name])
-    p_heard = posteriors[heard]
+
+    # The mirror's hearing is over the model's FULL vocabulary, not the drilled
+    # set: a full-vocab ear (Phase 1) must be able to hear /l/ or /s/ where the
+    # learner produced them. Blank and out-of-table tokens are excluded; a
+    # closed-set judge's whole vocabulary is its table, so it is unaffected.
+    full_mean = np.exp(log_probs[frames].astype(np.float64)).mean(axis=0)
+    if 0 <= phone_map.blank_index < full_mean.shape[0]:
+        full_mean[phone_map.blank_index] = 0.0
+    index_to_name = {index: name for name, index in phone_map.index_of.items()}
+    heard_index = int(np.argmax(full_mean))
+    if heard_index in index_to_name and full_mean[heard_index] > 0:
+        heard = index_to_name[heard_index]
+        p_heard = float(full_mean[heard_index] / (full_mean.sum() + EPS))
+    else:
+        heard = max(names, key=lambda name: posteriors[name])
+        p_heard = posteriors[heard]
     hearing_score = float(np.log((p_heard + EPS) / (1.0 - p_heard + EPS)))
 
     # Spike frame: the single frame where a confusion beat the target hardest.
