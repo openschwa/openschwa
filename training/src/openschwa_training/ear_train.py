@@ -206,13 +206,18 @@ def _flush_batch(
     # that pollute the head's training. fp32 costs ~2x here and removes the
     # whole failure class.
     with torch.inference_mode():
-        hidden = encoder(padded, attention_mask=mask).last_hidden_state  # [B, T, 1024]
+        outputs = encoder(padded, attention_mask=mask, output_hidden_states=True)
+        # Layers 12-20, mean-pooled over the layer axis: middle layers encode
+        # phone identity best (TACL 2024 probing; the final layer is tuned for
+        # the SSL pretraining objective and gives a ~3.1 loss plateau - the
+        # report's recipe for the judge used exactly this band).
+        hidden = torch.stack(outputs.hidden_states[12:21], dim=0).mean(dim=0)  # [B, T, 1024]
     valid = [int(encoder._get_feat_extract_output_lengths(p["samples"].size)) for p in pending]
     for position, entry in enumerate(pending):
         feat = hidden[position, : valid[position]].float().cpu().numpy()
-        # bf16 encoder output can exceed fp16's range (65504); casting those
-        # values to float16 silently yields inf, the head trains on garbage,
-        # and the loss plateaus at the random-prediction level. Clamp first.
+        # fp32 output can still exceed fp16's range for pathological frames;
+        # clamp before the float16 cast so a single outlier cannot poison a
+        # whole shard.
         feat = np.clip(feat, -65_504.0, 65_504.0).astype(np.float16)
         flat.append(feat)
         shard.append(
@@ -436,26 +441,28 @@ def _val_accuracy(
 
 
 def export_model(head_state: dict[str, torch.Tensor], base_model_dir: Path, out_dir: Path) -> None:
-    """Assemble the engine-loadable ear: XLS-R base + trained CTC head."""
-    from safetensors.torch import save_file  # noqa: PLC0415 - the ear env only
-    from transformers import Wav2Vec2Config, Wav2Vec2ForCTC  # noqa: PLC0415
+    """Assemble the engine-loadable EarCTC layout: XLS-R base + trained head.
 
-    model = Wav2Vec2ForCTC.from_pretrained(str(base_model_dir))
-    with torch.no_grad():
-        model.lm_head = torch.nn.Linear(model.config.hidden_size, NUM_CLASSES)
-        model.lm_head.weight.copy_(head_state["weight"])
-        model.lm_head.bias.copy_(head_state["bias"])
-    model.config.vocab_size = NUM_CLASSES
-    model.config.pad_token_id = BLANK
-    model.config.ctc_loss_reduction = "mean"
+    The head was trained on the mean of middle-layer hidden states (12-20);
+    the exported architecture must compute the SAME features at inference -
+    hence the EarCTC class in the engine (alignment/acoustic.py), not a
+    plain Wav2Vec2ForCTC whose final-layer features would silently mismatch.
+    """
+    from safetensors.torch import save_file  # noqa: PLC0415 - the ear env only
+    from transformers import Wav2Vec2Config, Wav2Vec2Model  # noqa: PLC0415
+
+    base = Wav2Vec2Model.from_pretrained(str(base_model_dir))
+    state = {f"wav2vec2.{key}": value for key, value in base.state_dict().items()}
+    state["head.weight"] = head_state["weight"].detach().float()
+    state["head.bias"] = head_state["bias"].detach().float()
     model_dir = out_dir / "model"
     model_dir.mkdir(parents=True, exist_ok=True)
-    save_file(model.state_dict(), model_dir / "model.safetensors")
+    save_file(state, model_dir / "model.safetensors")
     config_dict = Wav2Vec2Config.from_pretrained(str(base_model_dir)).to_dict()
     config_dict["vocab_size"] = NUM_CLASSES
     config_dict["pad_token_id"] = BLANK
-    config_dict["ctc_loss_reduction"] = "mean"
-    config_dict["architectures"] = ["Wav2Vec2ForCTC"]
+    config_dict["ear_layers"] = [12, 21]
+    config_dict["architectures"] = ["EarCTC"]
     (model_dir / "config.json").write_text(json.dumps(config_dict, indent=2), encoding="utf-8")
     preprocessor = base_model_dir / "preprocessor_config.json"
     if not preprocessor.is_file():
