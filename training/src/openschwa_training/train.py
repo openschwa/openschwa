@@ -29,8 +29,10 @@ from torch import nn
 
 log = logging.getLogger("openschwa-training")
 
-ALPHABET = ("ð", "z", "d", "v")
-#: vocab.json layout for 4-class sequence classifier
+#: Open-set classes (Stage 3): every non-ð/z/d realization folds into
+#: "other", which exists only in the model's vocabulary.
+ALPHABET = ("ð", "z", "d", "other")
+#: vocab.json layout for the 4-class fusion classifier
 VOCAB = {phone: i for i, phone in enumerate(ALPHABET)}
 
 
