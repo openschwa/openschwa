@@ -82,3 +82,32 @@ def test_evaluate_handles_empty_ok_set():
     assert summary["fall_rise_accuracy"] == 0.0
     assert summary["mean_octave_error_rate"] is None
     assert summary["bar"]["met"] is False
+
+
+def test_recorder_plan_and_save(tmp_path):
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "record_intonation_set",
+        Path(__file__).resolve().parents[1] / "record_intonation_set.py",
+    )
+    recorder = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(recorder)
+
+    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    steps = recorder.plan(manifest, tmp_path)
+    assert len(steps) == 136  # 68 items x 2 reps
+    assert all(exists is False for _i, _r, _p, exists in steps)
+    assert steps[0][2].name == "fr-01a_1.wav"
+    assert steps[-1][2].name == "lv-08_2.wav"
+
+    samples = np.zeros(1600, dtype=np.int16)
+    recorder.save_wav(tmp_path / "fr-01a_1.wav", samples, 16_000)
+    assert (tmp_path / "fr-01a_1.wav").is_file()
+    steps = recorder.plan(manifest, tmp_path)
+    assert steps[0][3] is True  # resume: recorded takes are detected
+    with wave.open(str(tmp_path / "fr-01a_1.wav")) as handle:
+        assert handle.getframerate() == 16_000
+        assert handle.getnchannels() == 1
+        assert handle.getnframes() == 1600
+
