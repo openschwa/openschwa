@@ -126,6 +126,20 @@ def _write_wav(path: Path, samples: np.ndarray, sample_rate: int) -> None:
         handle.writeframes((np.clip(samples, -1.0, 1.0) * 32767).astype("<i2").tobytes())
 
 
+def _manifest_rows(manifest_path: Path) -> list[dict[str, object]]:
+    """The manifest's data rows, skipping stray repeated header lines.
+
+    A writer racing a previous partial run can leave an extra header mid-file;
+    rows whose fields equal the header itself are dropped at read time.
+    """
+    rows: list[dict[str, object]] = []
+    for row in csv.DictReader(manifest_path.open(encoding="utf-8")):
+        if row.get("id") == "id" and row.get("client_id") == "client_id":
+            continue
+        rows.append(dict(row))
+    return rows
+
+
 def prep(
     out_dir: Path,
     hours: float,
@@ -149,9 +163,8 @@ def prep(
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     done_ids: set[str] = set()
     if manifest_path.is_file():
-        for line in manifest_path.read_text(encoding="utf-8").splitlines():
-            if line.strip():
-                done_ids.add(json.loads(line)["id"])
+        for row in _manifest_rows(manifest_path):
+            done_ids.add(row["id"])
         log.info("resuming: %d clips already prepared", len(done_ids))
 
     g2p = G2p()

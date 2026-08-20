@@ -76,14 +76,12 @@ def _client_split(client_id: str) -> str:
 
 
 def load_manifest(data_dir: Path) -> list[dict[str, object]]:
-    rows: list[dict[str, object]] = []
+    from openschwa_training.ear_prep import _manifest_rows  # noqa: PLC0415
+
     manifest = data_dir / "manifest.jsonl"
     if not manifest.is_file():
         raise FileNotFoundError(f"{manifest}: run ear_prep first")
-    for line in manifest.read_text(encoding="utf-8").splitlines():
-        if line.strip():
-            rows.append(json.loads(line))
-    return rows
+    return _manifest_rows(manifest)
 
 
 def extract(
