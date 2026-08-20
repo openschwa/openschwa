@@ -187,8 +187,9 @@ class FeedbackItem(_Model):
     kind: str = Field(
         description=(
             "Open enum, grows per milestone. Current: segmental_substitution, retry, "
-            "phone_hearing (the M1 mirror: what the ear heard at the focus slot). "
-            "Planned: nuclear_tone_mismatch (M2), vot_out_of_range (M3)."
+            "phone_hearing (the M1 mirror: what the ear heard at the focus slot), "
+            "intonation_tone (M2: the nuclear-tone verdict vs the exercise target). "
+            "Planned: vot_out_of_range (M3)."
         )
     )
     severity: Literal["error", "warning", "praise"]

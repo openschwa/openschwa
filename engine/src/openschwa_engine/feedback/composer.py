@@ -19,8 +19,20 @@ M1 ships three kinds:
 """
 
 from openschwa_engine.alignment import AlignmentOutcome
-from openschwa_engine.schemas.analysis import Anchor, ContrastResult, FeedbackItem
+from openschwa_engine.schemas.analysis import Anchor, ContrastResult, FeedbackItem, Prosody
 from openschwa_engine.scoring import Calibration
+
+#: The tone verdict's operating confidence, calibrated on the controlled
+#: recordings exam (eval/reports-recordings/): >= 0.3 shows 93.2% correct
+#: verdicts at 97.8% coverage; below it the honest couldn't-tell refusal.
+TONE_CONFIDENCE_GATE = 0.3
+
+TONE_NAMES = {
+    "fall": "a falling tone",
+    "rise": "a rising tone",
+    "fall_rise": "a falling-then-rising tone",
+    "level": "a flat tone",
+}
 
 RETRY_MESSAGES = {
     "no speech detected in the recording": "I couldn't hear any speech — try recording again.",
@@ -137,12 +149,62 @@ def _hearing_item(
     )
 
 
+def intonation_item(prosody: "Prosody | None") -> FeedbackItem | None:
+    """The M2 tone verdict, or None when there is nothing to say.
+
+    Pure DSP - no alignment involved - so it ships even when the phone
+    alignment failed, and only for exercises that declare an expected tone.
+    Below the confidence gate the honest couldn't-tell refusal ships: a
+    wrong tone verdict is worse than none.
+    """
+    if prosody is None or prosody.nuclear_tone is None:
+        return None
+    verdict = prosody.nuclear_tone
+    expected = verdict.expected
+    if expected is None:
+        return None
+    confidence = round(verdict.confidence, 4)
+    if confidence < TONE_CONFIDENCE_GATE:
+        return FeedbackItem(
+            id="tone",
+            kind="intonation_tone",
+            severity="warning",
+            confidence=confidence,
+            message_key="feedback.tone_uncertain",
+            message="I couldn't hear the melody clearly enough - try that one again.",
+        )
+    if verdict.match:
+        return FeedbackItem(
+            id="tone",
+            kind="intonation_tone",
+            severity="praise",
+            confidence=confidence,
+            message_key="feedback.tone_match",
+            message=(
+                f"That ended with {TONE_NAMES.get(expected, expected)} "
+                "- right on target."
+            ),
+        )
+    return FeedbackItem(
+        id="tone",
+        kind="intonation_tone",
+        severity="warning",
+        confidence=confidence,
+        message_key="feedback.tone_mismatch",
+        message=(
+            f"The target is {TONE_NAMES.get(expected, expected)}, but that ended "
+            f"with {TONE_NAMES.get(verdict.detected, verdict.detected)}."
+        ),
+    )
+
+
 def compose(
     outcome: AlignmentOutcome,
     contrasts: "list[ContrastResult] | tuple[ContrastResult, ...]" = (),
     *,
     include_ungated: bool = False,
     calibration: "Calibration | None" = None,
+    prosody: "Prosody | None" = None,
 ) -> list[FeedbackItem]:
     """Gate-passing feedback for one analysis.
 
@@ -156,8 +218,15 @@ def compose(
     is reported above the hearing threshold, and below it the honest
     couldn't-tell refusal ships (it is not a judgment, so it needs no gate).
     """
+    # The tone verdict is pure DSP: it ships even when the phone alignment
+    # failed (no model installed, noisy take, ...) - the melody of the take
+    # and the phone lineup are independent facts.
+    tone = intonation_item(prosody)
     if not outcome.ok:
-        return [retry_item(outcome)]
+        items = [retry_item(outcome)]
+        if tone is not None:
+            items.append(tone)
+        return items
 
     items: list[FeedbackItem] = []
     for index, contrast in enumerate(contrasts):
@@ -201,5 +270,10 @@ def compose(
         )
         if item is not None:
             items.append(item)
+
+    # M2: the tone verdict comes last - for an intonation exercise it is the
+    # headline, and for a segmental exercise it never fires (no expected tone).
+    if tone is not None:
+        items.append(tone)
 
     return items

@@ -2,7 +2,7 @@
 
 from openschwa_engine.alignment import AlignedPhone, AlignmentOutcome
 from openschwa_engine.feedback.composer import compose, retry_item
-from openschwa_engine.schemas.analysis import ContrastResult
+from openschwa_engine.schemas.analysis import ContrastResult, F0Track, NuclearTone, Prosody
 from openschwa_engine.scoring.calibration import (
     AlignmentCalibration,
     Calibration,
@@ -217,3 +217,58 @@ def test_mirror_stays_silent_without_heard():
         calibration=hearing_calibration(),
     )
     assert [item.kind for item in items if item.kind == "phone_hearing"] == []
+
+
+
+def prosody_with_tone(expected, detected, confidence):
+    return Prosody(
+        f0=F0Track(hop_s=0.01, start_s=0.0, semitones=[0.0, 1.0], median_hz=120.0),
+        nuclear_tone=NuclearTone(
+            detected=detected,
+            expected=expected,
+            match=detected == expected,
+            confidence=confidence,
+        ),
+    )
+
+
+def test_tone_match_is_praise():
+    items = compose(outcome(), prosody=prosody_with_tone("fall", "fall", 0.9))
+    tone = next(i for i in items if i.kind == "intonation_tone")
+    assert tone.severity == "praise"
+    assert tone.message_key == "feedback.tone_match"
+    assert "falling" in tone.message
+
+
+def test_tone_mismatch_is_a_warning_naming_both_tones():
+    items = compose(outcome(), prosody=prosody_with_tone("fall", "rise", 0.9))
+    tone = next(i for i in items if i.kind == "intonation_tone")
+    assert tone.severity == "warning"
+    assert tone.message_key == "feedback.tone_mismatch"
+    assert "falling" in tone.message and "rising" in tone.message
+
+
+def test_tone_below_gate_is_an_honest_refusal():
+    items = compose(outcome(), prosody=prosody_with_tone("fall", "rise", 0.1))
+    tone = next(i for i in items if i.kind == "intonation_tone")
+    assert tone.message_key == "feedback.tone_uncertain"
+    assert "falling" not in tone.message
+
+
+def test_no_expected_tone_means_no_tone_item():
+    items = compose(outcome(), prosody=prosody_with_tone(None, "fall", 0.9))
+    assert [i.kind for i in items if i.kind == "intonation_tone"] == []
+
+
+def test_failed_alignment_still_reports_the_tone():
+    items = compose(
+        outcome("failed"),
+        prosody=prosody_with_tone("fall", "fall", 0.9),
+    )
+    kinds = [i.kind for i in items]
+    assert "retry" in kinds and "intonation_tone" in kinds
+
+
+def test_without_prosody_there_is_no_tone_item():
+    items = compose(outcome())
+    assert [i.kind for i in items if i.kind == "intonation_tone"] == []

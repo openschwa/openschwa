@@ -429,5 +429,6 @@ def analyze_recording(
             contrasts,
             include_ungated=include_ungated,
             calibration=calibration,
+            prosody=prosody,
         ),
     )
