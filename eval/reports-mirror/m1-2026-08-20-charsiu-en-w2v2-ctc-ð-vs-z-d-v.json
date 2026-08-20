@@ -1,0 +1,1026 @@
+{
+  "run_tag": "m1-2026-08-20-charsiu-en-w2v2-ctc-\u00f0-vs-z-d-v",
+  "model_id": "charsiu-en-w2v2-ctc",
+  "target": "\u00f0",
+  "confusions": [
+    "z",
+    "d",
+    "v"
+  ],
+  "seed": 42,
+  "tokens": {
+    "train": 0,
+    "cal": 1312,
+    "test": 2410
+  },
+  "score_variant": "mean",
+  "variants": {
+    "mean": {
+      "platt": {
+        "a": -0.034137358251255134,
+        "b": -0.5147737576224368
+      },
+      "threshold": 0.605,
+      "status": "SHIPPING BAR NOT MET",
+      "global_cal_status": "SHIPPING BAR NOT MET",
+      "cal": {
+        "tokens": 1312,
+        "positives": 551,
+        "verdicts": 1311,
+        "refused": 1,
+        "audio_problem_refused": 0,
+        "tp": 5,
+        "fp": 6,
+        "fn": 546,
+        "precision": 0.4545,
+        "recall": 0.0091,
+        "f1": 0.0178
+      },
+      "test": {
+        "tokens": 2410,
+        "positives": 522,
+        "verdicts": 2407,
+        "refused": 3,
+        "audio_problem_refused": 0,
+        "tp": 4,
+        "fp": 19,
+        "fn": 518,
+        "precision": 0.1739,
+        "recall": 0.0077,
+        "f1": 0.0147
+      },
+      "per_l1": {
+        "arabic": {
+          "ok": false,
+          "tokens": 150,
+          "positives": 20,
+          "verdicts": 150,
+          "refused": 0,
+          "audio_problem_refused": 0,
+          "tp": 0,
+          "fp": 4,
+          "fn": 20,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "hindi": {
+          "ok": false,
+          "tokens": 158,
+          "positives": 85,
+          "verdicts": 158,
+          "refused": 0,
+          "audio_problem_refused": 0,
+          "tp": 4,
+          "fp": 3,
+          "fn": 81,
+          "precision": 0.5714,
+          "recall": 0.0471,
+          "f1": 0.087
+        },
+        "korean": {
+          "ok": false,
+          "tokens": 161,
+          "positives": 102,
+          "verdicts": 161,
+          "refused": 0,
+          "audio_problem_refused": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 102,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "mandarin": {
+          "ok": false,
+          "tokens": 1640,
+          "positives": 111,
+          "verdicts": 1637,
+          "refused": 3,
+          "audio_problem_refused": 0,
+          "tp": 0,
+          "fp": 11,
+          "fn": 111,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "spanish": {
+          "ok": false,
+          "tokens": 152,
+          "positives": 122,
+          "verdicts": 152,
+          "refused": 0,
+          "audio_problem_refused": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 122,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "vietnamese": {
+          "ok": false,
+          "tokens": 149,
+          "positives": 82,
+          "verdicts": 149,
+          "refused": 0,
+          "audio_problem_refused": 0,
+          "tp": 0,
+          "fp": 1,
+          "fn": 82,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        }
+      },
+      "auc": 0.6381
+    },
+    "spike": {
+      "platt": {
+        "a": -0.04504091257495808,
+        "b": -0.5705525030094909
+      },
+      "threshold": 0.995,
+      "status": "SHIPPING BAR NOT MET",
+      "global_cal_status": "SHIPPING BAR NOT MET",
+      "cal": {
+        "tokens": 1312,
+        "positives": 551,
+        "verdicts": 1311,
+        "refused": 1,
+        "audio_problem_refused": 0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 551,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      "test": {
+        "tokens": 2410,
+        "positives": 522,
+        "verdicts": 2407,
+        "refused": 3,
+        "audio_problem_refused": 0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 522,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      "per_l1": {
+        "arabic": {
+          "ok": false,
+          "tokens": 150,
+          "positives": 20,
+          "verdicts": 150,
+          "refused": 0,
+          "audio_problem_refused": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 20,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "hindi": {
+          "ok": false,
+          "tokens": 158,
+          "positives": 85,
+          "verdicts": 158,
+          "refused": 0,
+          "audio_problem_refused": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 85,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "korean": {
+          "ok": false,
+          "tokens": 161,
+          "positives": 102,
+          "verdicts": 161,
+          "refused": 0,
+          "audio_problem_refused": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 102,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "mandarin": {
+          "ok": false,
+          "tokens": 1640,
+          "positives": 111,
+          "verdicts": 1637,
+          "refused": 3,
+          "audio_problem_refused": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 111,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "spanish": {
+          "ok": false,
+          "tokens": 152,
+          "positives": 122,
+          "verdicts": 152,
+          "refused": 0,
+          "audio_problem_refused": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 122,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "vietnamese": {
+          "ok": false,
+          "tokens": 149,
+          "positives": 82,
+          "verdicts": 149,
+          "refused": 0,
+          "audio_problem_refused": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 82,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        }
+      },
+      "auc": 0.6358
+    },
+    "vote": {
+      "platt": {
+        "a": -0.39781559831858787,
+        "b": -0.2953303119921827
+      },
+      "threshold": 0.995,
+      "status": "SHIPPING BAR NOT MET",
+      "global_cal_status": "SHIPPING BAR NOT MET",
+      "cal": {
+        "tokens": 1312,
+        "positives": 551,
+        "verdicts": 1311,
+        "refused": 1,
+        "audio_problem_refused": 0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 551,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      "test": {
+        "tokens": 2410,
+        "positives": 522,
+        "verdicts": 2407,
+        "refused": 3,
+        "audio_problem_refused": 0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 522,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      "per_l1": {
+        "arabic": {
+          "ok": false,
+          "tokens": 150,
+          "positives": 20,
+          "verdicts": 150,
+          "refused": 0,
+          "audio_problem_refused": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 20,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "hindi": {
+          "ok": false,
+          "tokens": 158,
+          "positives": 85,
+          "verdicts": 158,
+          "refused": 0,
+          "audio_problem_refused": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 85,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "korean": {
+          "ok": false,
+          "tokens": 161,
+          "positives": 102,
+          "verdicts": 161,
+          "refused": 0,
+          "audio_problem_refused": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 102,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "mandarin": {
+          "ok": false,
+          "tokens": 1640,
+          "positives": 111,
+          "verdicts": 1637,
+          "refused": 3,
+          "audio_problem_refused": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 111,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "spanish": {
+          "ok": false,
+          "tokens": 152,
+          "positives": 122,
+          "verdicts": 152,
+          "refused": 0,
+          "audio_problem_refused": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 122,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "vietnamese": {
+          "ok": false,
+          "tokens": 149,
+          "positives": 82,
+          "verdicts": 149,
+          "refused": 0,
+          "audio_problem_refused": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 82,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        }
+      },
+      "auc": 0.5397
+    },
+    "gop": {
+      "platt": {
+        "a": -0.053933701165281935,
+        "b": -0.350755267134068
+      },
+      "threshold": 0.59,
+      "status": "pooled-bar-not-met",
+      "global_cal_status": "ok",
+      "cal": {
+        "tokens": 1312,
+        "positives": 551,
+        "verdicts": 1312,
+        "refused": 0,
+        "audio_problem_refused": 0,
+        "tp": 1,
+        "fp": 0,
+        "fn": 550,
+        "precision": 1.0,
+        "recall": 0.0018,
+        "f1": 0.0036
+      },
+      "test": {
+        "tokens": 2410,
+        "positives": 522,
+        "verdicts": 2410,
+        "refused": 0,
+        "audio_problem_refused": 0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 522,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      "per_l1": {
+        "arabic": {
+          "ok": false,
+          "tokens": 150,
+          "positives": 20,
+          "verdicts": 150,
+          "refused": 0,
+          "audio_problem_refused": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 20,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "hindi": {
+          "ok": false,
+          "tokens": 158,
+          "positives": 85,
+          "verdicts": 158,
+          "refused": 0,
+          "audio_problem_refused": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 85,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "korean": {
+          "ok": false,
+          "tokens": 161,
+          "positives": 102,
+          "verdicts": 161,
+          "refused": 0,
+          "audio_problem_refused": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 102,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "mandarin": {
+          "ok": false,
+          "tokens": 1640,
+          "positives": 111,
+          "verdicts": 1640,
+          "refused": 0,
+          "audio_problem_refused": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 111,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "spanish": {
+          "ok": false,
+          "tokens": 152,
+          "positives": 122,
+          "verdicts": 152,
+          "refused": 0,
+          "audio_problem_refused": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 122,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "vietnamese": {
+          "ok": false,
+          "tokens": 149,
+          "positives": 82,
+          "verdicts": 149,
+          "refused": 0,
+          "audio_problem_refused": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 82,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        }
+      },
+      "auc": 0.4362
+    }
+  },
+  "platt": {
+    "a": -0.034137358251255134,
+    "b": -0.5147737576224368
+  },
+  "gop_platt": {
+    "a": 0.05393354350439259,
+    "b": 0.35075706496604053
+  },
+  "threshold": 0.605,
+  "status": "mirror-bar-not-met",
+  "judge_status": "SHIPPING BAR NOT MET",
+  "mirror": {
+    "platt": {
+      "a": 0.014583104852852033,
+      "b": 0.09401442444326565
+    },
+    "threshold": 0.56,
+    "status": "mirror-bar-not-met",
+    "cal_status": "ok",
+    "cal": {
+      "tokens": 1312,
+      "scored": 1311,
+      "confident": 1,
+      "correct": 1,
+      "accuracy": 1.0,
+      "coverage": 0.0008,
+      "answer_rate": 0.0008,
+      "unscorable": 0,
+      "top1_accuracy": 0.5439
+    },
+    "test": {
+      "tokens": 2410,
+      "scored": 2407,
+      "confident": 2,
+      "correct": 1,
+      "accuracy": 0.5,
+      "coverage": 0.0008,
+      "answer_rate": 0.0008,
+      "unscorable": 0,
+      "top1_accuracy": 0.7044
+    },
+    "per_l1": {
+      "arabic": {
+        "ok": true,
+        "tokens": 150,
+        "scored": 150,
+        "confident": 0,
+        "correct": 0,
+        "accuracy": 0.0,
+        "coverage": 0.0,
+        "answer_rate": 0.0,
+        "unscorable": 0,
+        "top1_accuracy": 0.8733
+      },
+      "hindi": {
+        "ok": false,
+        "tokens": 158,
+        "scored": 158,
+        "confident": 1,
+        "correct": 0,
+        "accuracy": 0.0,
+        "coverage": 0.0063,
+        "answer_rate": 0.0063,
+        "unscorable": 0,
+        "top1_accuracy": 0.4684
+      },
+      "korean": {
+        "ok": true,
+        "tokens": 161,
+        "scored": 161,
+        "confident": 0,
+        "correct": 0,
+        "accuracy": 0.0,
+        "coverage": 0.0,
+        "answer_rate": 0.0,
+        "unscorable": 0,
+        "top1_accuracy": 0.3727
+      },
+      "mandarin": {
+        "ok": true,
+        "tokens": 1640,
+        "scored": 1637,
+        "confident": 1,
+        "correct": 1,
+        "accuracy": 1.0,
+        "coverage": 0.0006,
+        "answer_rate": 0.0006,
+        "unscorable": 0,
+        "top1_accuracy": 0.8116
+      },
+      "spanish": {
+        "ok": true,
+        "tokens": 152,
+        "scored": 152,
+        "confident": 0,
+        "correct": 0,
+        "accuracy": 0.0,
+        "coverage": 0.0,
+        "answer_rate": 0.0,
+        "unscorable": 0,
+        "top1_accuracy": 0.2237
+      },
+      "vietnamese": {
+        "ok": true,
+        "tokens": 149,
+        "scored": 149,
+        "confident": 0,
+        "correct": 0,
+        "accuracy": 0.0,
+        "coverage": 0.0,
+        "answer_rate": 0.0,
+        "unscorable": 0,
+        "top1_accuracy": 0.4564
+      }
+    },
+    "confusion": {
+      "rows": {
+        "\u00f0": {
+          "\u00f0": 1
+        },
+        "d": {
+          "\u00f0": 1
+        }
+      },
+      "columns": [
+        "\u00f0"
+      ]
+    },
+    "flagged_sample": [
+      {
+        "utterance_id": "l2arctic-ASI-arctic_a0111",
+        "audio_path": "data/l2arctic/ASI/wav/arctic_a0111.wav",
+        "start_s": 2.14,
+        "end_s": 2.18,
+        "l1": "hindi",
+        "heard": "\u00f0",
+        "realized": "d",
+        "p_heard_realized": 0.5602,
+        "correct_report": false
+      },
+      {
+        "utterance_id": "so762-001570325",
+        "audio_path": "data/speechocean762/WAVE/SPEAKER0157/001570325.WAV",
+        "start_s": null,
+        "end_s": null,
+        "l1": "mandarin",
+        "heard": "\u00f0",
+        "realized": "\u00f0",
+        "p_heard_realized": 0.5623,
+        "correct_report": true
+      }
+    ]
+  },
+  "cal_metrics": {
+    "tokens": 1312,
+    "positives": 551,
+    "verdicts": 1311,
+    "refused": 1,
+    "audio_problem_refused": 0,
+    "tp": 5,
+    "fp": 6,
+    "fn": 546,
+    "precision": 0.4545,
+    "recall": 0.0091,
+    "f1": 0.0178
+  },
+  "test_metrics": {
+    "tokens": 2410,
+    "positives": 522,
+    "verdicts": 2407,
+    "refused": 3,
+    "audio_problem_refused": 0,
+    "tp": 4,
+    "fp": 19,
+    "fn": 518,
+    "precision": 0.1739,
+    "recall": 0.0077,
+    "f1": 0.0147
+  },
+  "test_auc": 0.6381,
+  "per_l1": {
+    "arabic": {
+      "ok": false,
+      "tokens": 150,
+      "positives": 20,
+      "verdicts": 150,
+      "refused": 0,
+      "audio_problem_refused": 0,
+      "tp": 0,
+      "fp": 4,
+      "fn": 20,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "hindi": {
+      "ok": false,
+      "tokens": 158,
+      "positives": 85,
+      "verdicts": 158,
+      "refused": 0,
+      "audio_problem_refused": 0,
+      "tp": 4,
+      "fp": 3,
+      "fn": 81,
+      "precision": 0.5714,
+      "recall": 0.0471,
+      "f1": 0.087
+    },
+    "korean": {
+      "ok": false,
+      "tokens": 161,
+      "positives": 102,
+      "verdicts": 161,
+      "refused": 0,
+      "audio_problem_refused": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 102,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "mandarin": {
+      "ok": false,
+      "tokens": 1640,
+      "positives": 111,
+      "verdicts": 1637,
+      "refused": 3,
+      "audio_problem_refused": 0,
+      "tp": 0,
+      "fp": 11,
+      "fn": 111,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "spanish": {
+      "ok": false,
+      "tokens": 152,
+      "positives": 122,
+      "verdicts": 152,
+      "refused": 0,
+      "audio_problem_refused": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 122,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "vietnamese": {
+      "ok": false,
+      "tokens": 149,
+      "positives": 82,
+      "verdicts": 149,
+      "refused": 0,
+      "audio_problem_refused": 0,
+      "tp": 0,
+      "fp": 1,
+      "fn": 82,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    }
+  },
+  "per_corpus": {
+    "l2arctic": {
+      "tokens": 915,
+      "positives": 521,
+      "verdicts": 915,
+      "refused": 0,
+      "audio_problem_refused": 0,
+      "tp": 4,
+      "fp": 8,
+      "fn": 517,
+      "precision": 0.3333,
+      "recall": 0.0077,
+      "f1": 0.015,
+      "auc": 0.4129
+    },
+    "so762": {
+      "tokens": 1495,
+      "positives": 1,
+      "verdicts": 1492,
+      "refused": 3,
+      "audio_problem_refused": 0,
+      "tp": 0,
+      "fp": 11,
+      "fn": 1,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "auc": 0.5459
+    }
+  },
+  "alignment": {
+    "statuses": {
+      "ok": 3718,
+      "low_confidence": 4
+    },
+    "mean_ok_confidence": 0.9001
+  },
+  "latency": {
+    "cold_ms": 24.0,
+    "median_warm_ms": 20.3
+  },
+  "download_bytes": 377706220,
+  "flagged_sample": [
+    {
+      "utterance_id": "l2arctic-ABA-arctic_a0058",
+      "audio_path": "data/l2arctic/ABA/wav/arctic_a0058.wav",
+      "start_s": 3.89,
+      "end_s": 4.14,
+      "l1": "arabic",
+      "corpus_label": "correct",
+      "predicted_confusion": "z",
+      "p_substituted": 0.6055,
+      "correct_flag": false
+    },
+    {
+      "utterance_id": "l2arctic-ABA-arctic_a0060",
+      "audio_path": "data/l2arctic/ABA/wav/arctic_a0060.wav",
+      "start_s": 2.3,
+      "end_s": 2.36,
+      "l1": "arabic",
+      "corpus_label": "correct",
+      "predicted_confusion": "z",
+      "p_substituted": 0.6055,
+      "correct_flag": false
+    },
+    {
+      "utterance_id": "l2arctic-ABA-arctic_a0461",
+      "audio_path": "data/l2arctic/ABA/wav/arctic_a0461.wav",
+      "start_s": 2.04,
+      "end_s": 2.14,
+      "l1": "arabic",
+      "corpus_label": "correct",
+      "predicted_confusion": "z",
+      "p_substituted": 0.6055,
+      "correct_flag": false
+    },
+    {
+      "utterance_id": "l2arctic-ABA-arctic_b0461",
+      "audio_path": "data/l2arctic/ABA/wav/arctic_b0461.wav",
+      "start_s": 1.2,
+      "end_s": 1.27,
+      "l1": "arabic",
+      "corpus_label": "correct",
+      "predicted_confusion": "z",
+      "p_substituted": 0.6055,
+      "correct_flag": false
+    },
+    {
+      "utterance_id": "l2arctic-ASI-arctic_a0096",
+      "audio_path": "data/l2arctic/ASI/wav/arctic_a0096.wav",
+      "start_s": 3.8,
+      "end_s": 3.84,
+      "l1": "hindi",
+      "corpus_label": "correct",
+      "predicted_confusion": "z",
+      "p_substituted": 0.6055,
+      "correct_flag": false
+    },
+    {
+      "utterance_id": "l2arctic-ASI-arctic_a0120",
+      "audio_path": "data/l2arctic/ASI/wav/arctic_a0120.wav",
+      "start_s": 1.24,
+      "end_s": 1.29,
+      "l1": "hindi",
+      "corpus_label": "correct",
+      "predicted_confusion": "z",
+      "p_substituted": 0.6055,
+      "correct_flag": false
+    },
+    {
+      "utterance_id": "l2arctic-ASI-arctic_b0197",
+      "audio_path": "data/l2arctic/ASI/wav/arctic_b0197.wav",
+      "start_s": 1.91,
+      "end_s": 1.96,
+      "l1": "hindi",
+      "corpus_label": "correct",
+      "predicted_confusion": "z",
+      "p_substituted": 0.6055,
+      "correct_flag": false
+    },
+    {
+      "utterance_id": "l2arctic-THV-arctic_a0542",
+      "audio_path": "data/l2arctic/THV/wav/arctic_a0542.wav",
+      "start_s": 1.79,
+      "end_s": 1.87,
+      "l1": "vietnamese",
+      "corpus_label": "correct",
+      "predicted_confusion": "z",
+      "p_substituted": 0.6055,
+      "correct_flag": false
+    },
+    {
+      "utterance_id": "so762-000240073",
+      "audio_path": "data/speechocean762/WAVE/SPEAKER0024/000240073.WAV",
+      "start_s": null,
+      "end_s": null,
+      "l1": "mandarin",
+      "corpus_label": "correct",
+      "predicted_confusion": "z",
+      "p_substituted": 0.6055,
+      "correct_flag": false
+    },
+    {
+      "utterance_id": "so762-000240320",
+      "audio_path": "data/speechocean762/WAVE/SPEAKER0024/000240320.WAV",
+      "start_s": null,
+      "end_s": null,
+      "l1": "mandarin",
+      "corpus_label": "correct",
+      "predicted_confusion": "z",
+      "p_substituted": 0.6055,
+      "correct_flag": false
+    },
+    {
+      "utterance_id": "so762-001570030",
+      "audio_path": "data/speechocean762/WAVE/SPEAKER0157/001570030.WAV",
+      "start_s": null,
+      "end_s": null,
+      "l1": "mandarin",
+      "corpus_label": "correct",
+      "predicted_confusion": "z",
+      "p_substituted": 0.6055,
+      "correct_flag": false
+    },
+    {
+      "utterance_id": "so762-001570325",
+      "audio_path": "data/speechocean762/WAVE/SPEAKER0157/001570325.WAV",
+      "start_s": null,
+      "end_s": null,
+      "l1": "mandarin",
+      "corpus_label": "correct",
+      "predicted_confusion": "z",
+      "p_substituted": 0.6055,
+      "correct_flag": false
+    },
+    {
+      "utterance_id": "so762-010990048",
+      "audio_path": "data/speechocean762/WAVE/SPEAKER1099/010990048.WAV",
+      "start_s": null,
+      "end_s": null,
+      "l1": "mandarin",
+      "corpus_label": "correct",
+      "predicted_confusion": "z",
+      "p_substituted": 0.6055,
+      "correct_flag": false
+    },
+    {
+      "utterance_id": "so762-012920085",
+      "audio_path": "data/speechocean762/WAVE/SPEAKER1292/012920085.WAV",
+      "start_s": null,
+      "end_s": null,
+      "l1": "mandarin",
+      "corpus_label": "correct",
+      "predicted_confusion": "z",
+      "p_substituted": 0.6055,
+      "correct_flag": false
+    },
+    {
+      "utterance_id": "so762-020020108",
+      "audio_path": "data/speechocean762/WAVE/SPEAKER2002/020020108.WAV",
+      "start_s": null,
+      "end_s": null,
+      "l1": "mandarin",
+      "corpus_label": "correct",
+      "predicted_confusion": "z",
+      "p_substituted": 0.6055,
+      "correct_flag": false
+    },
+    {
+      "utterance_id": "l2arctic-ASI-arctic_a0075",
+      "audio_path": "data/l2arctic/ASI/wav/arctic_a0075.wav",
+      "start_s": 0.03,
+      "end_s": 0.1,
+      "l1": "hindi",
+      "corpus_label": "substituted",
+      "predicted_confusion": "z",
+      "p_substituted": 0.6055,
+      "correct_flag": true
+    },
+    {
+      "utterance_id": "l2arctic-ASI-arctic_a0058",
+      "audio_path": "data/l2arctic/ASI/wav/arctic_a0058.wav",
+      "start_s": 2.79,
+      "end_s": 2.86,
+      "l1": "hindi",
+      "corpus_label": "substituted",
+      "predicted_confusion": "z",
+      "p_substituted": 0.6055,
+      "correct_flag": true
+    },
+    {
+      "utterance_id": "l2arctic-ASI-arctic_a0111",
+      "audio_path": "data/l2arctic/ASI/wav/arctic_a0111.wav",
+      "start_s": 2.14,
+      "end_s": 2.18,
+      "l1": "hindi",
+      "corpus_label": "substituted",
+      "predicted_confusion": "z",
+      "p_substituted": 0.6055,
+      "correct_flag": true
+    },
+    {
+      "utterance_id": "l2arctic-ASI-arctic_a0032",
+      "audio_path": "data/l2arctic/ASI/wav/arctic_a0032.wav",
+      "start_s": 0.37,
+      "end_s": 0.43,
+      "l1": "hindi",
+      "corpus_label": "substituted",
+      "predicted_confusion": "z",
+      "p_substituted": 0.6055,
+      "correct_flag": true
+    }
+  ]
+}
