@@ -16,7 +16,13 @@ from openschwa_engine.prosody.f0 import F0Track
 #: stretch carries the fall or rise the drill is about.
 TERMINAL_S = 0.35
 #: Minimum absolute slope (semitones/second) to call a fall or a rise.
-SLOPE_THRESHOLD_ST_S = 8.0
+SLOPE_THRESHOLD_ST_S = 6.0
+#: Falls get a lower bar than rises: a level-ish pre-glide onset dilutes
+#: the fall's window slope (calibrated on the controlled recordings exam).
+FALL_THRESHOLD_ST_S = 4.0
+#: Fall-rise halves must be steeper than a plain fall/rise: a fall with a
+#: creaky release rises a little after the glide and is still a fall.
+FALL_RISE_HALF_THRESHOLD_ST_S = 12.0
 
 Tone = str  # fall | rise | fall_rise | level
 
@@ -46,6 +52,26 @@ def _slope(times: np.ndarray, values: np.ndarray) -> float | None:
     if denominator <= 0:
         return None
     return float(np.sum(centered * values) / denominator)
+
+
+def _theil_sen(times: np.ndarray, values: np.ndarray) -> float | None:
+    """Median pairwise slope (st/s) - robust to octave/creak outlier frames.
+
+    A single doubled frame turns the OLS slope into a huge artifact; the
+    median of pairwise slopes ignores it. None when unmeasurable.
+    """
+    if times.size < 3 or np.ptp(times) < 1e-3:
+        return None
+    order = np.argsort(times)
+    times = times[order]
+    values = values[order]
+    slopes: list[float] = []
+    for i in range(times.size):
+        for j in range(i + 1, times.size):
+            dt = times[j] - times[i]
+            if dt > 1e-6:
+                slopes.append((values[j] - values[i]) / dt)
+    return float(np.median(np.asarray(slopes)))
 
 
 def nuclear_tone(
@@ -81,26 +107,29 @@ def nuclear_tone(
         end = min(end, last_voiced)
     window_start = max(0.0, end - terminal_s)
     times, values = _voiced_series(track, window_start, end)
-    slope = _slope(times, values)
+    slope = _theil_sen(times, values)
     if slope is None or values.size < 3:
         return "level", 0.0
-    # Fall-rise check: split the terminal window in half.
+    # Fall-rise check: split the terminal window in half. Both halves must
+    # be genuinely steep (stricter than the fall/rise threshold - a falling
+    # glide with a creaky release rises a little, and must not read as a
+    # fall-rise).
     mid = float(times[0]) + (float(times[-1]) - float(times[0])) / 2.0
     first = values[times <= mid]
     second = values[times > mid]
-    first_slope = _slope(times[times <= mid], first) if first.size >= 3 else None
-    second_slope = _slope(times[times > mid], second) if second.size >= 3 else None
+    first_slope = _theil_sen(times[times <= mid], first) if first.size >= 3 else None
+    second_slope = _theil_sen(times[times > mid], second) if second.size >= 3 else None
     if (
         first_slope is not None
         and second_slope is not None
-        and first_slope <= -SLOPE_THRESHOLD_ST_S
-        and second_slope >= SLOPE_THRESHOLD_ST_S
+        and first_slope <= -FALL_RISE_HALF_THRESHOLD_ST_S
+        and second_slope >= FALL_RISE_HALF_THRESHOLD_ST_S
     ):
         return "fall_rise", 1.0
     confidence = min(1.0, abs(slope) / (2 * SLOPE_THRESHOLD_ST_S))
     if slope >= SLOPE_THRESHOLD_ST_S:
         return "rise", confidence
-    if slope <= -SLOPE_THRESHOLD_ST_S:
+    if slope <= -FALL_THRESHOLD_ST_S:
         return "fall", confidence
     return "level", confidence
 

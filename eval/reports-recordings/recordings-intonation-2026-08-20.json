@@ -1,0 +1,232 @@
+{
+  "recordings": 136,
+  "usable": 124,
+  "fall_rise_units": 90,
+  "fall_rise_accuracy": 0.9111,
+  "mean_octave_error_rate": 0.00028,
+  "per_tone": {
+    "fall": {
+      "n": 43,
+      "accuracy": 0.8372
+    },
+    "rise": {
+      "n": 47,
+      "accuracy": 0.9787
+    },
+    "fall_rise": {
+      "n": 18,
+      "accuracy": 0.2222
+    },
+    "level": {
+      "n": 16,
+      "accuracy": 0.8125
+    }
+  },
+  "bar": {
+    "fall_rise_accuracy_met": true,
+    "octave_error_rate_met": true,
+    "met": true
+  },
+  "flags_for_verification": [
+    {
+      "item_id": "fr-07a",
+      "rep": 1,
+      "text": "Morning.",
+      "expected": "fall",
+      "detected": "fall_rise",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "fr-08a",
+      "rep": 1,
+      "text": "Later.",
+      "expected": "fall",
+      "detected": "rise",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "fr-08a",
+      "rep": 2,
+      "text": "Later.",
+      "expected": "fall",
+      "detected": "fall_rise",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "fr-09a",
+      "rep": 1,
+      "text": "Today.",
+      "expected": "fall",
+      "detected": "level",
+      "confidence": 0.261
+    },
+    {
+      "item_id": "fr-10a",
+      "rep": 1,
+      "text": "Hello.",
+      "expected": "fall",
+      "detected": "fall_rise",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "fr-10b",
+      "rep": 1,
+      "text": "Hello?",
+      "expected": "rise",
+      "detected": "fall_rise",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "fr-11a",
+      "rep": 1,
+      "text": "No.",
+      "expected": "fall",
+      "detected": "fall_rise",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "fr-13a",
+      "rep": 2,
+      "text": "Water.",
+      "expected": "fall",
+      "detected": "level",
+      "confidence": 0.012
+    },
+    {
+      "item_id": "fx-01",
+      "rep": 1,
+      "text": "Well...",
+      "expected": "fall_rise",
+      "detected": "rise",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "fx-01",
+      "rep": 2,
+      "text": "Well...",
+      "expected": "fall_rise",
+      "detected": "rise",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "fx-02",
+      "rep": 1,
+      "text": "I don't know...",
+      "expected": "fall_rise",
+      "detected": "rise",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "fx-03",
+      "rep": 2,
+      "text": "Maybe...",
+      "expected": "fall_rise",
+      "detected": "rise",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "fx-04",
+      "rep": 1,
+      "text": "If you say so...",
+      "expected": "fall_rise",
+      "detected": "rise",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "fx-05",
+      "rep": 2,
+      "text": "Sometimes...",
+      "expected": "fall_rise",
+      "detected": "rise",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "fx-06",
+      "rep": 1,
+      "text": "In a way...",
+      "expected": "fall_rise",
+      "detected": "rise",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "fx-06",
+      "rep": 2,
+      "text": "In a way...",
+      "expected": "fall_rise",
+      "detected": "rise",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "fx-07",
+      "rep": 2,
+      "text": "It's not bad.",
+      "expected": "fall_rise",
+      "detected": "fall",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "fx-08",
+      "rep": 2,
+      "text": "I could do it.",
+      "expected": "fall_rise",
+      "detected": "fall",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "fx-09",
+      "rep": 1,
+      "text": "That's one way.",
+      "expected": "fall_rise",
+      "detected": "rise",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "fx-09",
+      "rep": 2,
+      "text": "That's one way.",
+      "expected": "fall_rise",
+      "detected": "rise",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "fx-10",
+      "rep": 1,
+      "text": "Not exactly.",
+      "expected": "fall_rise",
+      "detected": "rise",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "fx-12",
+      "rep": 1,
+      "text": "If you insist.",
+      "expected": "fall_rise",
+      "detected": "fall",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "lv-07",
+      "rep": 1,
+      "text": "As for me...",
+      "expected": "level",
+      "detected": "fall",
+      "confidence": 0.393
+    },
+    {
+      "item_id": "lv-07",
+      "rep": 2,
+      "text": "As for me...",
+      "expected": "level",
+      "detected": "fall",
+      "confidence": 0.444
+    },
+    {
+      "item_id": "lv-08",
+      "rep": 1,
+      "text": "If we hurry...",
+      "expected": "level",
+      "detected": "fall",
+      "confidence": 0.408
+    }
+  ]
+}

@@ -157,7 +157,7 @@ def evaluate_recordings(records: list[RecordingRecord]) -> dict:
             "confidence": r.confidence,
         }
         for r in records
-        if r.status != "ok" or r.detected != r.expected_tone
+        if r.status != "excluded" and (r.status != "ok" or r.detected != r.expected_tone)
     ]
     return {
         "recordings": len(records),

@@ -1,0 +1,136 @@
+{"item_id": "fr-01a", "rep": 1, "text": "Please.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-01a", "rep": 2, "text": "Please.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-01b", "rep": 1, "text": "Please?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-01b", "rep": 2, "text": "Please?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-02a", "rep": 1, "text": "Really.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-02a", "rep": 2, "text": "Really.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-02b", "rep": 1, "text": "Really?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-02b", "rep": 2, "text": "Really?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-03a", "rep": 1, "text": "Coffee.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-03a", "rep": 2, "text": "Coffee.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-03b", "rep": 1, "text": "Coffee?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-03b", "rep": 2, "text": "Coffee?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-04a", "rep": 1, "text": "Ready.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-04a", "rep": 2, "text": "Ready.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-04b", "rep": 1, "text": "Ready?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-04b", "rep": 2, "text": "Ready?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-05a", "rep": 1, "text": "Sorry.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-05a", "rep": 2, "text": "Sorry.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-05b", "rep": 1, "text": "Sorry?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-05b", "rep": 2, "text": "Sorry?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-06a", "rep": 1, "text": "Maybe.", "expected_tone": "fall", "status": "excluded", "detected": null, "confidence": null, "octave_error_rate": null, "duration_s": 0.0}
+{"item_id": "fr-06a", "rep": 2, "text": "Maybe.", "expected_tone": "fall", "status": "excluded", "detected": null, "confidence": null, "octave_error_rate": null, "duration_s": 0.0}
+{"item_id": "fr-06b", "rep": 1, "text": "Maybe?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-06b", "rep": 2, "text": "Maybe?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-07a", "rep": 1, "text": "Morning.", "expected_tone": "fall", "status": "ok", "detected": "fall_rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-07a", "rep": 2, "text": "Morning.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-07b", "rep": 1, "text": "Morning?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-07b", "rep": 2, "text": "Morning?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-08a", "rep": 1, "text": "Later.", "expected_tone": "fall", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-08a", "rep": 2, "text": "Later.", "expected_tone": "fall", "status": "ok", "detected": "fall_rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-08b", "rep": 1, "text": "Later?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-08b", "rep": 2, "text": "Later?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-09a", "rep": 1, "text": "Today.", "expected_tone": "fall", "status": "ok", "detected": "level", "confidence": 0.261, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-09a", "rep": 2, "text": "Today.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0213, "duration_s": 3.5}
+{"item_id": "fr-09b", "rep": 1, "text": "Today?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-09b", "rep": 2, "text": "Today?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-10a", "rep": 1, "text": "Hello.", "expected_tone": "fall", "status": "ok", "detected": "fall_rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-10a", "rep": 2, "text": "Hello.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-10b", "rep": 1, "text": "Hello?", "expected_tone": "rise", "status": "ok", "detected": "fall_rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-10b", "rep": 2, "text": "Hello?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-11a", "rep": 1, "text": "No.", "expected_tone": "fall", "status": "ok", "detected": "fall_rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-11a", "rep": 2, "text": "No.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 0.886, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-11b", "rep": 1, "text": "No?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-11b", "rep": 2, "text": "No?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-12a", "rep": 1, "text": "Story.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-12a", "rep": 2, "text": "Story.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-12b", "rep": 1, "text": "Story?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-12b", "rep": 2, "text": "Story?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-13a", "rep": 1, "text": "Water.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-13a", "rep": 2, "text": "Water.", "expected_tone": "fall", "status": "ok", "detected": "level", "confidence": 0.012, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-13b", "rep": 1, "text": "Water?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-13b", "rep": 2, "text": "Water?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-14a", "rep": 1, "text": "Party.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-14a", "rep": 2, "text": "Party.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 0.375, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-14b", "rep": 1, "text": "Party?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-14b", "rep": 2, "text": "Party?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-15a", "rep": 1, "text": "Dinner.", "expected_tone": "fall", "status": "excluded", "detected": null, "confidence": null, "octave_error_rate": null, "duration_s": 0.0}
+{"item_id": "fr-15a", "rep": 2, "text": "Dinner.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-15b", "rep": 1, "text": "Dinner?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-15b", "rep": 2, "text": "Dinner?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-16a", "rep": 1, "text": "Window.", "expected_tone": "fall", "status": "excluded", "detected": null, "confidence": null, "octave_error_rate": null, "duration_s": 0.0}
+{"item_id": "fr-16a", "rep": 2, "text": "Window.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-16b", "rep": 1, "text": "Window?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-16b", "rep": 2, "text": "Window?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-17a", "rep": 1, "text": "Again.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-17a", "rep": 2, "text": "Again.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-17b", "rep": 1, "text": "Again?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-17b", "rep": 2, "text": "Again?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-18a", "rep": 1, "text": "Mary.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-18a", "rep": 2, "text": "Mary.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-18b", "rep": 1, "text": "Mary?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-18b", "rep": 2, "text": "Mary?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-19a", "rep": 1, "text": "Fine.", "expected_tone": "fall", "status": "excluded", "detected": null, "confidence": null, "octave_error_rate": null, "duration_s": 0.0}
+{"item_id": "fr-19a", "rep": 2, "text": "Fine.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 0.867, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-19b", "rep": 1, "text": "Fine?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-19b", "rep": 2, "text": "Fine?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-20a", "rep": 1, "text": "Soon.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-20a", "rep": 2, "text": "Soon.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-20b", "rep": 1, "text": "Soon?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-20b", "rep": 2, "text": "Soon?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-21a", "rep": 1, "text": "I'd like coffee.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-21a", "rep": 2, "text": "I'd like coffee.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-21b", "rep": 1, "text": "I'd like coffee?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-21b", "rep": 2, "text": "I'd like coffee?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-22a", "rep": 1, "text": "You're coming.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 0.515, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-22a", "rep": 2, "text": "You're coming.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-22b", "rep": 1, "text": "You're coming?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-22b", "rep": 2, "text": "You're coming?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-23a", "rep": 1, "text": "That's your sister.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-23a", "rep": 2, "text": "That's your sister.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-23b", "rep": 1, "text": "That's your sister?", "expected_tone": "rise", "status": "excluded", "detected": null, "confidence": null, "octave_error_rate": null, "duration_s": 0.0}
+{"item_id": "fr-23b", "rep": 2, "text": "That's your sister?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-24a", "rep": 1, "text": "We can go now.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 0.406, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-24a", "rep": 2, "text": "We can go now.", "expected_tone": "fall", "status": "ok", "detected": "fall", "confidence": 0.905, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-24b", "rep": 1, "text": "We can go now?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fr-24b", "rep": 2, "text": "We can go now?", "expected_tone": "rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fx-01", "rep": 1, "text": "Well...", "expected_tone": "fall_rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fx-01", "rep": 2, "text": "Well...", "expected_tone": "fall_rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fx-02", "rep": 1, "text": "I don't know...", "expected_tone": "fall_rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fx-02", "rep": 2, "text": "I don't know...", "expected_tone": "fall_rise", "status": "excluded", "detected": null, "confidence": null, "octave_error_rate": null, "duration_s": 0.0}
+{"item_id": "fx-03", "rep": 1, "text": "Maybe...", "expected_tone": "fall_rise", "status": "excluded", "detected": null, "confidence": null, "octave_error_rate": null, "duration_s": 0.0}
+{"item_id": "fx-03", "rep": 2, "text": "Maybe...", "expected_tone": "fall_rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fx-04", "rep": 1, "text": "If you say so...", "expected_tone": "fall_rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fx-04", "rep": 2, "text": "If you say so...", "expected_tone": "fall_rise", "status": "excluded", "detected": null, "confidence": null, "octave_error_rate": null, "duration_s": 0.0}
+{"item_id": "fx-05", "rep": 1, "text": "Sometimes...", "expected_tone": "fall_rise", "status": "excluded", "detected": null, "confidence": null, "octave_error_rate": null, "duration_s": 0.0}
+{"item_id": "fx-05", "rep": 2, "text": "Sometimes...", "expected_tone": "fall_rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fx-06", "rep": 1, "text": "In a way...", "expected_tone": "fall_rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fx-06", "rep": 2, "text": "In a way...", "expected_tone": "fall_rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fx-07", "rep": 1, "text": "It's not bad.", "expected_tone": "fall_rise", "status": "ok", "detected": "fall_rise", "confidence": 1.0, "octave_error_rate": 0.0137, "duration_s": 3.5}
+{"item_id": "fx-07", "rep": 2, "text": "It's not bad.", "expected_tone": "fall_rise", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fx-08", "rep": 1, "text": "I could do it.", "expected_tone": "fall_rise", "status": "ok", "detected": "fall_rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fx-08", "rep": 2, "text": "I could do it.", "expected_tone": "fall_rise", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fx-09", "rep": 1, "text": "That's one way.", "expected_tone": "fall_rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fx-09", "rep": 2, "text": "That's one way.", "expected_tone": "fall_rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fx-10", "rep": 1, "text": "Not exactly.", "expected_tone": "fall_rise", "status": "ok", "detected": "rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fx-10", "rep": 2, "text": "Not exactly.", "expected_tone": "fall_rise", "status": "excluded", "detected": null, "confidence": null, "octave_error_rate": null, "duration_s": 0.0}
+{"item_id": "fx-11", "rep": 1, "text": "Possibly.", "expected_tone": "fall_rise", "status": "excluded", "detected": null, "confidence": null, "octave_error_rate": null, "duration_s": 0.0}
+{"item_id": "fx-11", "rep": 2, "text": "Possibly.", "expected_tone": "fall_rise", "status": "ok", "detected": "fall_rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fx-12", "rep": 1, "text": "If you insist.", "expected_tone": "fall_rise", "status": "ok", "detected": "fall", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "fx-12", "rep": 2, "text": "If you insist.", "expected_tone": "fall_rise", "status": "ok", "detected": "fall_rise", "confidence": 1.0, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "lv-01", "rep": 1, "text": "One, two, three.", "expected_tone": "level", "status": "ok", "detected": "level", "confidence": 0.213, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "lv-01", "rep": 2, "text": "One, two, three.", "expected_tone": "level", "status": "ok", "detected": "level", "confidence": 0.106, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "lv-02", "rep": 1, "text": "Red, green, blue.", "expected_tone": "level", "status": "ok", "detected": "level", "confidence": 0.171, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "lv-02", "rep": 2, "text": "Red, green, blue.", "expected_tone": "level", "status": "ok", "detected": "level", "confidence": 0.033, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "lv-03", "rep": 1, "text": "If you want...", "expected_tone": "level", "status": "ok", "detected": "level", "confidence": 0.156, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "lv-03", "rep": 2, "text": "If you want...", "expected_tone": "level", "status": "ok", "detected": "level", "confidence": 0.114, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "lv-04", "rep": 1, "text": "So...", "expected_tone": "level", "status": "ok", "detected": "level", "confidence": 0.111, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "lv-04", "rep": 2, "text": "So...", "expected_tone": "level", "status": "ok", "detected": "level", "confidence": 0.1, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "lv-05", "rep": 1, "text": "And then...", "expected_tone": "level", "status": "ok", "detected": "level", "confidence": 0.122, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "lv-05", "rep": 2, "text": "And then...", "expected_tone": "level", "status": "ok", "detected": "level", "confidence": 0.022, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "lv-06", "rep": 1, "text": "In the morning...", "expected_tone": "level", "status": "ok", "detected": "level", "confidence": 0.109, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "lv-06", "rep": 2, "text": "In the morning...", "expected_tone": "level", "status": "ok", "detected": "level", "confidence": 0.285, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "lv-07", "rep": 1, "text": "As for me...", "expected_tone": "level", "status": "ok", "detected": "fall", "confidence": 0.393, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "lv-07", "rep": 2, "text": "As for me...", "expected_tone": "level", "status": "ok", "detected": "fall", "confidence": 0.444, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "lv-08", "rep": 1, "text": "If we hurry...", "expected_tone": "level", "status": "ok", "detected": "fall", "confidence": 0.408, "octave_error_rate": 0.0, "duration_s": 3.5}
+{"item_id": "lv-08", "rep": 2, "text": "If we hurry...", "expected_tone": "level", "status": "ok", "detected": "level", "confidence": 0.23, "octave_error_rate": 0.0, "duration_s": 3.5}
