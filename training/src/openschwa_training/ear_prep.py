@@ -1,20 +1,21 @@
-"""Prepare the ear's training data: Common Voice EN -> 16 kHz segments + phone labels.
+"""Prepare the ear's training data: transcript-only speech -> 16 kHz segments + phones.
 
 The ear (Phase 1) is a frozen XLS-R-300M + fresh CTC head over the charsiu
 phone inventory (stressless ARPABET, the vocabulary the repo already commits
-for alignment). This script streams the Common Voice EN train split (CC0),
-keeps validated clips, converts each sentence to a phone-token sequence with
-g2p_en (CMU dictionary + rules, stress digits stripped), and writes 16 kHz
-mono wavs plus a manifest. The output is corpus-derived audio, so it never
-enters git (training/data/ is ignored).
+for alignment). This script streams license-clean English speech with
+transcripts - LibriSpeech (CC-BY-4.0) and VoxPopuli (CC0); Common Voice left
+HF in Oct 2025 for Mozilla Data Collective - converts each sentence to a
+phone-token sequence with g2p_en (CMU dictionary + rules, stress digits
+stripped), and writes 16 kHz mono wavs plus a manifest. The output is
+corpus-derived audio, so it never enters git (training/data/ is ignored).
 
-Val split discipline: the hold-out is by CLIENT (speaker), matching the
-repo's speaker-disjoint rule - no speaker's voice may leak from train into
-the ear's own validation.
+Val split discipline: the hold-out is by SPEAKER, matching the repo's
+speaker-disjoint rule - no speaker's voice may leak from train into the
+ear's own validation.
 
 Usage (laptop):
     uv run python -m openschwa_training.ear_prep \
-        --out data/ear-cv --hours 60
+        --out data/ear-cv --hours 100 --source librispeech --source voxpopuli
 Resumable: existing clips with a completed manifest row are skipped.
 """
 
@@ -126,16 +127,22 @@ def _write_wav(path: Path, samples: np.ndarray, sample_rate: int) -> None:
 def prep(
     out_dir: Path,
     hours: float,
+    sources: tuple[str, ...] = ("librispeech",),
     *,
     min_duration_s: float = 1.0,
-    max_duration_s: float = 10.0,
+    max_duration_s: float = 30.0,
     max_clips: int | None = None,
 ) -> dict[str, object]:
-    """Stream Common Voice EN, keep validated clips, write wavs + manifest."""
-    from datasets import Audio, load_dataset  # noqa: PLC0415 - the ear env only
+    """Stream transcript-only English speech, write wavs + manifest.
+
+    Sources (all license-clean for training shippable weights):
+    - librispeech: openslr/librispeech_asr, config clean, train.100 (CC-BY-4.0)
+    - voxpopuli:   facebook/voxpopuli, config en, train (CC0)
+    Common Voice is listed but unusable since Oct 2025 (moved to Mozilla Data
+    Collective; the HF repos are walled off).
+    """
     from g2p_en.g2p import G2p  # noqa: PLC0415
 
-    audio_dir = out_dir / "audio"
     manifest_path = out_dir / "manifest.jsonl"
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     done_ids: set[str] = set()
@@ -145,36 +152,112 @@ def prep(
                 done_ids.add(json.loads(line)["id"])
         log.info("resuming: %d clips already prepared", len(done_ids))
 
-    dataset = load_dataset(
-        "mozilla-foundation/common_voice_17_0",
-        "en",
-        split="train",
-        streaming=True,
-    ).cast_column("audio", Audio(sampling_rate=16_000))
-
     g2p = G2p()
     total_s = 0.0
     kept = 0
     skipped_oov = 0
-    skipped_unvalidated = 0
     seen = 0
-    for row in dataset:
-        seen += 1
+    for source in sources:
+        if total_s >= hours * 3600:
+            break
+        total_s, kept, skipped_oov, seen = _prep_source(
+            source,
+            out_dir,
+            g2p,
+            done_ids,
+            total_s,
+            kept,
+            skipped_oov,
+            seen,
+            hours,
+            min_duration_s,
+            max_duration_s,
+            max_clips,
+        )
+
+    summary = {
+        "hours": round(total_s / 3600, 2),
+        "clips": kept,
+        "skipped_oov": skipped_oov,
+        "seen": seen,
+    }
+    (out_dir / "prep_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    log.info("done: %s", summary)
+    return summary
+
+
+def _stream(source: str) -> object:
+    """The streaming dataset for a source, audio cast to 16 kHz mono."""
+    from datasets import Audio, load_dataset  # noqa: PLC0415 - the ear env only
+
+    if source == "librispeech":
+        return load_dataset(
+            "openslr/librispeech_asr", "clean", split="train.100", streaming=True
+        ).cast_column("audio", Audio(sampling_rate=16_000))
+    if source == "voxpopuli":
+        return load_dataset("facebook/voxpopuli", "en", split="train", streaming=True).cast_column(
+            "audio", Audio(sampling_rate=16_000)
+        )
+    raise ValueError(
+        f"unknown source {source!r} - available: librispeech, voxpopuli "
+        "(Common Voice left HF in Oct 2025 for Mozilla Data Collective)"
+    )
+
+
+def _row_fields(source: str, row: dict[str, object]) -> tuple[str, str, str] | None:
+    """(clip_id, client_id, sentence) for a source's row; None = skip."""
+    if source == "librispeech":
+        sentence = str(row.get("text") or "").strip()
+        if not sentence:
+            return None
+        return (
+            f"ls-{row.get('file') or row.get('id') or ''}".rstrip("-"),
+            str(row.get("speaker_id") or "unknown"),
+            sentence,
+        )
+    if source == "voxpopuli":
+        sentence = str(row.get("normalized_text") or "").strip()
+        if not sentence:
+            return None
+        audio_path = str(row.get("audio", {}).get("path") or "")
+        return (
+            f"vp-{audio_path.rsplit('/', 1)[-1] or row.get('id') or ''}".rstrip("-"),
+            str(row.get("speaker_id") or "unknown"),
+            sentence,
+        )
+    return None
+
+
+def _prep_source(
+    source: str,
+    out_dir: Path,
+    g2p: object,
+    done_ids: set[str],
+    total_s: float,
+    kept: int,
+    skipped_oov: int,
+    seen: int,
+    hours: float,
+    min_duration_s: float,
+    max_duration_s: float,
+    max_clips: int | None,
+) -> tuple[float, int, int, int]:
+    log.info("source %s: streaming...", source)
+    audio_dir = out_dir / "audio"
+    manifest_path = out_dir / "manifest.jsonl"
+    for row in _stream(source):
         if max_clips is not None and kept >= max_clips:
             break
         if total_s >= hours * 3600:
             break
+        seen += 1
         if seen % 1000 == 0:
-            log.info("seen %d, kept %d (%.1f h)", seen, kept, total_s / 3600)
-        clip_id = str(row.get("path") or row.get("audio", {}).get("path") or f"cv-{seen}")
+            log.info("source %s: seen %d, kept %d (%.1f h)", source, seen, kept, total_s / 3600)
+        fields = _row_fields(source, row)
+        if fields is None:
+            continue
+        clip_id, client_id, sentence = fields
         if clip_id in done_ids:
-            continue
-        client_id = str(row.get("client_id") or "unknown")
-        sentence = str(row.get("sentence") or "").strip()
-        if not sentence:
-            continue
-        if int(row.get("up_votes") or 0) <= int(row.get("down_votes") or 0):
-            skipped_unvalidated += 1
             continue
         audio = row["audio"]["array"]
         sample_rate = int(row["audio"]["sampling_rate"])
@@ -201,27 +284,24 @@ def prep(
         done_ids.add(clip_id)
         kept += 1
         total_s += duration
-
-    summary = {
-        "hours": round(total_s / 3600, 2),
-        "clips": kept,
-        "skipped_oov": skipped_oov,
-        "skipped_unvalidated": skipped_unvalidated,
-        "seen": seen,
-    }
-    (out_dir / "prep_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
-    log.info("done: %s", summary)
-    return summary
+    return total_s, kept, skipped_oov, seen
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", required=True, type=Path, help="output dir (data/ear-cv)")
-    parser.add_argument("--hours", type=float, default=60.0, help="target audio hours")
+    parser.add_argument("--hours", type=float, default=100.0, help="target audio hours")
+    parser.add_argument(
+        "--source",
+        action="append",
+        default=[],
+        choices=["librispeech", "voxpopuli"],
+        help="streaming source; repeatable, streamed in order (default: librispeech)",
+    )
     parser.add_argument("--max-clips", type=int, default=None, help="hard clip cap (smoke runs)")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
-    prep(args.out, args.hours, max_clips=args.max_clips)
+    prep(args.out, args.hours, tuple(args.source or ["librispeech"]), max_clips=args.max_clips)
 
 
 if __name__ == "__main__":
