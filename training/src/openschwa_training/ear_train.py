@@ -231,7 +231,10 @@ def load_shards(out_dir: Path) -> list[ShardIndex]:
             for line in index_path.read_text(encoding="utf-8").splitlines()
             if line.strip()
         )
-        array_path = index_path.with_suffix(".npy")
+        # shard-0000.index.jsonl -> shard-0000.npy. with_suffix would replace
+        # only the LAST suffix and yield a nonexistent shard-0000.index.npy -
+        # which silently dropped every shard and made train() see "no shards".
+        array_path = index_path.with_name(index_path.name.replace(".index.jsonl", ".npy"))
         if clips and array_path.is_file():
             shards.append(ShardIndex(path=array_path, clips=clips))
     return shards
