@@ -73,10 +73,13 @@ SAMPA_TO_CANONICAL = {
 }
 #: Silence / structural labels on the phoneme tier (never mapped to phones).
 STRUCTURAL_LABELS = frozenset({"_", "#", "{", "END", "", "?", "!"})
-#: SEC tonetic stress marks we use as ground truth. The M2 bar covers
-#: fall vs rise; the rest are parsed and reported, not gated.
-TSM_TONES = {"\\": "fall", "/": "rise", "`/": "fall_rise", "=": "level"}
-TSM_PREFIXES = ("\\", "/", "`/", "=")
+#: SEC tonetic stress marks we use as ground truth. The SEC system has
+#: high/low variants of each tone (the manual's FIG2): backslash = high fall,
+#: grave = low fall, slash = high rise; both falls collapse to "fall" here.
+#: The M2 bar covers fall vs rise; the rest are parsed and reported, not gated.
+TSM_TONES = {"\\": "fall", "`": "fall", "/": "rise", "`/": "fall_rise", "=": "level"}
+#: Longer prefixes must match first: "`/" before "/", "`" before "\\".
+TSM_PREFIXES = ("\\", "`/", "/", "`", "=")
 BLOCK_PAD_S = 0.05  # silence margin when slicing a passage out of its block
 
 
@@ -270,8 +273,10 @@ def _finish_unit(
         if label:
             words.append(label)
     if tone not in ("fall", "rise", "fall_rise"):
-        # '`' is NOT a tone (INTSINT cross-check: mixed movement); units
-        # without a trustworthy mark are skipped. The bar gates fall vs rise.
+        # '*', '~', '_' are not trustworthy tone marks (the INTSINT and
+        # annotator-agreement cross-checks showed mixed movement for them);
+        # units without a trustworthy mark are skipped. The bar gates
+        # fall vs rise.
         return None
     start = intervals[0].xmin
     end = intervals[-1].xmax

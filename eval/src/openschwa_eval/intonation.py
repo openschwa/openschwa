@@ -95,12 +95,17 @@ def run_units(
             decoded = decode_wav(unit.audio_path.read_bytes())
             block_cache[unit.audio_path] = decoded
         rate = decoded.sample_rate
-        # The tone lives in the nuclear stretch: from the TSM-marked nucleus
-        # to the unit end. The pre-nuclear head carries no tone and only
-        # dilutes the terminal window (the smoke run measured exactly that:
-        # the nucleus is often mid-unit, and the tail after it is level).
+        # The tone lives in the nuclear glide: 0.1 s before the TSM word to
+        # 0.45 s into it (falls complete on the accented syllable; a longer
+        # window would pull the post-nuclear tail into the terminal window,
+        # which the smoke run showed reads as level). The pre-nuclear head
+        # carries no tone and only dilutes the measurement.
         start = max(0, int(unit.nucleus_s * rate) - int(0.1 * rate))
-        end = min(len(decoded.samples), int(unit.end_s * rate) + int(0.05 * rate))
+        end = min(
+            len(decoded.samples),
+            int(unit.end_s * rate),
+            int(unit.nucleus_s * rate) + int(0.45 * rate),
+        )
         if end - start < int(0.3 * rate):
             records.append(
                 IntonationRecord(unit.passage_id, unit.block_id, unit.annotator, unit.expected_tone)
