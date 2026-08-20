@@ -1,8 +1,23 @@
 """Committed calibration loading: strict on read, silent on failure."""
 
+import json
+import subprocess
+from pathlib import Path
+
 import pytest
 
-from openschwa_engine.scoring.calibration import Calibration, load_calibration, load_or_fail
+from openschwa_engine.scoring.calibration import (
+    CALIBRATION_PATH,
+    Calibration,
+    load_calibration,
+    load_or_fail,
+)
+
+#: Repo root (engine/tests/test_calibration.py -> repo).
+REPO_ROOT = Path(__file__).resolve().parents[2]
+#: Mirrors eval/src/openschwa_eval/harness.py's MIN_COMMIT_TRAIN; importing
+#: the eval package here would reverse the dependency direction.
+MIN_COMMIT_TRAIN = 200
 
 VALID = """schema_version: "1.0"
 generated_by: eval/reports/m1-2026-08-18.json
@@ -90,3 +105,46 @@ def test_per_l1_thresholds_are_rejected(tmp_path):
         encoding="utf-8",
     )
     assert load_calibration(path) is None
+
+
+def test_committed_calibration_traceable_to_passing_report():
+    """A committed calibration.yaml must trace, value-for-value, to a
+    committed exam report whose own status is 'ok'.
+
+    This is the tripwire for hand-forged calibrations (2026-08-20 incident:
+    a file with invented Platt constants and threshold 0.5 - which removes
+    the uncertain band entirely - cited a SHIPPING BAR NOT MET report as its
+    provenance and validated cleanly). A forger must now also forge a full
+    passing report, which is committed and reviewable. The file is expected
+    to be absent in CI: the only sanctioned writer (run_eval.py --commit)
+    runs on the exam laptop, and the file is committed together with its
+    report in the same commit.
+    """
+    if not CALIBRATION_PATH.is_file():
+        pytest.skip("no committed calibration - nothing to trace")
+    calibration = load_or_fail(CALIBRATION_PATH)
+    generated_by = calibration.generated_by
+    report_path = (REPO_ROOT / generated_by).resolve()
+    assert report_path.is_file(), f"generated_by {generated_by} does not exist"
+    # Committed content: an untracked report cannot be provenance.
+    tracked = subprocess.run(
+        ["git", "ls-files", "--error-unmatch", generated_by],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        check=False,
+    )
+    assert tracked.returncode == 0, f"generated_by {generated_by} is not committed content"
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["status"] == "ok", f"report status {report['status']} is not 'ok'"
+    assert report["model_id"] == calibration.model_id, "model_id mismatch"
+    assert report["tokens"]["train"] >= MIN_COMMIT_TRAIN, "report below the train-token floor"
+    # Every contrast must exist in the report and match value-for-value.
+    report_targets = {report["target"]}
+    yaml_targets = {contrast.target for contrast in calibration.contrasts}
+    assert yaml_targets == report_targets, (
+        f"contrast set {yaml_targets} does not match the report's {report_targets}"
+    )
+    for contrast in calibration.contrasts:
+        assert contrast.substitution_platt.a == pytest.approx(report["platt"]["a"])
+        assert contrast.substitution_platt.b == pytest.approx(report["platt"]["b"])
+        assert contrast.threshold == pytest.approx(report["threshold"])

@@ -136,9 +136,10 @@ def main() -> None:
             limit=args.limit,
             out_dir=out_dir,
             settings=settings,
-            # A smoke run must never commit: the harness enforces this, but
-            # refuse here too so the flag cannot sneak a bad file in.
-            commit_calibration=args.commit and args.limit is None,
+            # Candidates never commit: in a bake-off every passing candidate
+            # would otherwise write calibration.yaml, last writer wins. Only
+            # the winner re-run below may commit, and only with --commit.
+            commit_calibration=False,
             run_tag=run_tag,
         )
         summaries.append(summary)
@@ -169,10 +170,10 @@ def main() -> None:
                 summaries[0]["status"],
             )
 
-    if winner is not None:
-        # Smoke runs (--limit) never commit: a handful of tokens cannot meet
-        # the bar in any meaningful sense. The full-run path also re-checks
-        # the train-token floor inside evaluate_model.
+    if winner is not None and args.commit and args.limit is None:
+        # The ONLY sanctioned calibration write: one winner, full run,
+        # explicit --commit. Cheap - it resumes from the run's checkpoint.
+        # The harness re-checks the bar status and the train-token floor.
         evaluate_model(
             winner["model_id"],
             adapters,
@@ -182,11 +183,18 @@ def main() -> None:
             limit=args.limit,
             out_dir=out_dir,
             settings=settings,
-            commit_calibration=args.limit is None,
+            commit_calibration=True,
             run_tag=winner["run_tag"],
         )
-        if args.limit is None:
-            log.info("committed calibration for %s", winner["model_id"])
+        log.info("committed calibration for %s", winner["model_id"])
+    elif winner is not None:
+        log.info(
+            "bar met by %s but calibration NOT committed (%s)",
+            winner["model_id"],
+            "smoke run (--limit) never commits"
+            if args.limit is not None
+            else "pass --commit to write calibration.yaml",
+        )
 
 
 if __name__ == "__main__":

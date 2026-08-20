@@ -27,6 +27,8 @@ test:
     cd ui && npm test
     cd eval && uv run python -m pytest -q
     cd eval && uv run ruff check . && uv run ruff format --check .
+    cd training && uv run python -m pytest -q
+    cd training && uv run ruff check src tests
 
 # Regenerate the contract artifacts (JSON Schema + TS types) from the pydantic models
 schema:

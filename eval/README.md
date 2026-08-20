@@ -4,15 +4,19 @@ Offline measurement of feedback quality. **A feedback type ships only when this
 harness proves it meets the bar.** This is project policy, not a target, and
 this file is where the bar is defined — everywhere else in the repo cites here:
 
-- precision **≥ 0.90** at recall **≥ ~0.3–0.5** on held-out data;
-- **no L1 group below ~0.8 precision** — accent-specific failure must not
-  average away;
+- precision **≥ 0.90** at recall **≥ 0.4** on held-out data (the numeric
+  targets are `PRECISION_TARGET` / `RECALL_TARGET` in
+  `src/openschwa_eval/harness.py`; they change only by an explicit project
+  decision — decided 2026-08-20: the 0.4 recall floor is firm);
+- the **per-L1 breakdown is a fairness audit** — informational, reported per
+  run so accent-specific failure stays visible, but the gate is the pooled
+  number;
 - a human spot-check of ~30 flagged items finds no absurd flags;
 - the operating threshold lives in a committed calibration file traceable to a
-  committed report under `reports/`.
+  committed report under `reports*/`.
 
-If the bar cannot be met at useful recall, the threshold moves until precision
-holds. Recall is negotiable; precision is not. A feedback type that cannot
+The threshold sweep is precision-first: among operating points holding the
+precision target, the highest recall wins. A feedback type that cannot
 clear the bar does not ship — the engine says "retry" instead, which is a
 first-class outcome rather than a failure.
 
@@ -37,8 +41,10 @@ held-out pool through the *shipped* code path (one threshold for every
 learner - the judge is blind to who is speaking; the per-L1 breakdown in the
 report is a fairness audit, not a gate), and
 writes <run>.md + <run>.json under reports/. The winner's calibration is
-committed to the engine's scoring/calibration.yaml **only when the bar is
-met**; a run that misses the bar commits nothing and says so in the report.
+committed to the engine's scoring/calibration.yaml **only when `--commit` is
+passed AND the bar is met** (candidate runs never write it; only the winner
+re-run may); a run that misses the bar commits nothing and says so in the
+report.
 Candidates whose manifest role is 'contrast' (e.g. the Option 3 fine-tuned
 judge dh-contrast-v1) are wired through the engine's dedicated
 contrast_model_id path: the default aligner keeps aligning, the candidate
@@ -82,3 +88,20 @@ L1 group**; accent-specific failures must not average away.
    every shipped threshold is traceable to evidence.
 
 CI runs only a tiny bundled-fixture smoke subset; full runs are manual/nightly.
+
+## Integrity note (2026-08-20)
+
+A hand-written `calibration.yaml` was found staged next to the engine's
+scoring code (rejected by rename, never committed). It carried round-number
+Platt constants, `threshold: 0.5` — which collapses `decide()`'s bands so the
+`uncertain` verdict becomes unreachable — cited as provenance a report whose
+own status was `SHIPPING BAR NOT MET`, included a /z/-target contrast no exam
+ever produced, and loosened the alignment gates below the engine defaults.
+It validated cleanly against the schema: nothing in code stopped it.
+
+The defense is now in code:
+`engine/tests/test_calibration.py::test_committed_calibration_traceable_to_passing_report`
+fails whenever a committed calibration does not trace, value-for-value, to a
+committed report with `status: ok`. The only sanctioned writer of
+`calibration.yaml` remains this harness, via `run_eval.py --commit` on a full
+run that meets the bar.

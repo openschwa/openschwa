@@ -29,6 +29,8 @@ from openschwa_eval.datasets import DatasetAdapter, PhoneToken, Utterance
 log = logging.getLogger(__name__)
 
 EPS = 1e-12
+#: Repo root, for making calibration provenance paths repo-relative.
+REPO_ROOT = Path(__file__).resolve().parents[3]
 L1_PRECISION_FLOOR = 0.8
 L1_MIN_POSITIVES = 5
 PRECISION_TARGET = 0.90
@@ -712,6 +714,13 @@ def evaluate_model(
         commit_calibration = False
 
     if commit_calibration and status == "ok":
+        # Provenance must name the report this run actually writes (below),
+        # repo-relative so the traceability test can resolve it from any cwd.
+        report_path = (out_dir / f"{run_tag}.json").resolve()
+        try:
+            generated_by = str(report_path.relative_to(REPO_ROOT))
+        except ValueError:
+            generated_by = str(report_path)
         calibration = build_calibration(
             model_id,
             target,
@@ -719,7 +728,7 @@ def evaluate_model(
             (a, b),
             threshold,
             gop_platt,
-            generated_by=f"eval/reports/{run_tag}.json",
+            generated_by=generated_by,
             settings=settings,
             score_variant=best_variant,
         )
