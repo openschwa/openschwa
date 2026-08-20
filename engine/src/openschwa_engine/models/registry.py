@@ -229,6 +229,20 @@ MANIFEST: Mapping[str, ModelSpec] = MappingProxyType(
             ),
             role="contrast",
         ),
+        "dh-contrast-v12": ModelSpec(
+            id="dh-contrast-v12",
+            repo_id="local",
+            revision="local",
+            phone_table="dhz_en",
+            vocab_snapshot="dh-contrast-v12.json",
+            download_bytes=0,
+            license="Apache-2.0 (fine-tuned locally from the charsiu base)",
+            note=(
+                "Stage 3 r3: the v22 closed-set {ð, z, d, v} data recipe on the "
+                "honest three-way split with the fixed training recipe."
+            ),
+            role="contrast",
+        ),
         "dh-contrast-v11": ModelSpec(
             id="dh-contrast-v11",
             repo_id="local",

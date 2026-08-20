@@ -33,6 +33,8 @@ from openschwa_training.export_so762 import PAD_S, _align_with_posteriors
 
 #: Open-set realized classes: any non-ð/z/d realization folds into "other".
 REALIZED_CLASSES = ("ð", "z", "d", "other")
+#: Closed-set alternative (v22-era): /v/ is its own class, others are skipped.
+CLOSED_REALIZED_CLASSES = ("ð", "z", "d", "v")
 
 
 @dataclass(frozen=True)
@@ -47,6 +49,9 @@ class ErrorExportOptions:
     #: frame mass over the token, else the label is ambiguous and the row is
     #: skipped rather than teaching noise.
     min_class_mass: float = 0.6
+    #: "open" folds non-z/d realizations into "other"; "closed" keeps the
+    #: v22-era {ð, z, d, v} set and skips the rest.
+    alphabet: str = "open"
 
 
 def _realized_phone(
@@ -88,13 +93,22 @@ def _realized_phone(
     return names[winner]
 
 
-def _closed_map(phone_map, log_probs: np.ndarray) -> dict[str, int | list[int]]:
-    """{ð, z, d, other} -> vocabulary index / indices for the open-set vote.
+def _closed_map(
+    phone_map, log_probs: np.ndarray, alphabet: str
+) -> dict[str, int | list[int]]:
+    """Realized-classes -> vocabulary index / indices for the vote.
 
-    "other" covers every vocabulary index that is not blank, ð, z or d: its
-    per-frame value is the max over those indices (the single dominant
-    non-ð/z/d realization).
+    Open: "other" covers every vocabulary index that is not blank, ð, z or d
+    (per-frame max over those indices). Closed: the v22-era {ð, z, d, v}
+    set, each its own index.
     """
+    if alphabet == "closed":
+        return {
+            "ð": phone_map.index_of["ð"],
+            "z": phone_map.index_of["z"],
+            "d": phone_map.index_of["d"],
+            "v": phone_map.index_of["v"],
+        }
     used = {phone_map.index_of[c] for c in ("ð", "z", "d")}
     used.add(phone_map.blank_index)
     other = [i for i in range(log_probs.shape[1]) if i not in used]
@@ -138,7 +152,7 @@ def export_so762_errors(options: ErrorExportOptions) -> dict[str, object]:
             realized = _realized_phone(
                 log_probs,
                 phone.frame_indices,
-                _closed_map(charsiu_map, log_probs),
+                _closed_map(charsiu_map, log_probs, options.alphabet),
                 options.min_class_mass,
             )
             if realized is None or realized == "ð":
@@ -219,6 +233,7 @@ def main() -> None:
     parser.add_argument("--val-fraction", type=float, default=0.15)
     parser.add_argument("--pad-s", type=float, default=PAD_S)
     parser.add_argument("--min-class-mass", type=float, default=0.6)
+    parser.add_argument("--alphabet", choices=["open", "closed"], default="open")
     args = parser.parse_args()
     manifest = export_so762_errors(
         ErrorExportOptions(
@@ -228,6 +243,7 @@ def main() -> None:
             val_fraction=args.val_fraction,
             pad_s=args.pad_s,
             min_class_mass=args.min_class_mass,
+            alphabet=args.alphabet,
         )
     )
     print(json.dumps(manifest, indent=2))

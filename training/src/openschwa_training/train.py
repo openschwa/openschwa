@@ -29,8 +29,10 @@ from torch import nn
 
 log = logging.getLogger("openschwa-training")
 
-#: Open-set classes (Stage 3): every non-ð/z/d realization folds into
-#: "other", which exists only in the model's vocabulary.
+#: Default classes (Stage 3 open set): every non-ð/z/d realization folds
+#: into "other", which exists only in the model's vocabulary. The run's
+#: TrainOptions.alphabet overrides these before training starts, so a
+#: closed-set ablation (the v22-era {ð, z, d, v}) is one flag away.
 ALPHABET = ("ð", "z", "d", "other")
 #: vocab.json layout for the 4-class fusion classifier
 VOCAB = {phone: i for i, phone in enumerate(ALPHABET)}
@@ -135,6 +137,8 @@ class TrainOptions:
     #: decay). One optimizer lives across the whole run now; the warmup keeps
     #: the first steps from burning the schedule.
     warmup_frac: float = 0.1
+    #: The class alphabet for this run (open or closed set).
+    alphabet: tuple[str, ...] = ("ð", "z", "d", "other")
 
 
 def load_dataset(data_dirs: list[Path]) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
@@ -387,8 +391,11 @@ def balanced_batches(
 
 def train(options: TrainOptions) -> dict[str, object]:
     """Run (or resume) the fine-tune; returns the final metrics summary."""
+    global ALPHABET, VOCAB  # noqa: PLW0603 - the run's alphabet is an option
     from torch.nn import functional as F  # noqa: PLC0415
 
+    ALPHABET = options.alphabet
+    VOCAB = {phone: i for i, phone in enumerate(ALPHABET)}
     torch.manual_seed(options.seed)
     random.seed(options.seed)
     np.random.seed(options.seed)
@@ -638,6 +645,11 @@ def main() -> None:
         help="speed/noise augmentation of error segments",
     )
     parser.add_argument("--warmup-frac", type=float, default=0.1)
+    parser.add_argument(
+        "--alphabet",
+        default="ð,z,d,other",
+        help="comma-separated class alphabet, e.g. 'ð,z,d,v' for the closed set",
+    )
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--max-steps", type=int, default=None, help="smoke runs")
     args = parser.parse_args()
@@ -657,6 +669,7 @@ def main() -> None:
             hardneg_mult=args.hardneg_mult,
             augment=args.augment,
             warmup_frac=args.warmup_frac,
+            alphabet=tuple(phone for phone in args.alphabet.split(",") if phone),
             seed=args.seed,
             max_steps=args.max_steps,
             use_amp=not args.fp32,

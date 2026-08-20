@@ -30,6 +30,9 @@ from openschwa_eval.datasets import L2Arctic, PhoneToken, Utterance
 from openschwa_eval.harness import assign_split
 
 ALPHABET = ("ð", "z", "d", "other")
+#: The closed-set alternative (the recipe the v22 run used): non-z/d
+#: realizations are skipped instead of folded.
+CLOSED_ALPHABET = ("ð", "z", "d", "v")
 #: Correct tokens of these phones feed the "other" class: what the model must
 #: learn to tell apart from ð/z/d.
 OTHER_SOURCE_PHONES = ("θ", "s", "t", "f", "l", "v")
@@ -50,27 +53,31 @@ class ExportOptions:
     val_fraction: float = 0.15
     pad_s: float = PAD_S
     max_per_class: int | None = None
+    #: "open" folds non-z/d realizations into "other"; "closed" is the
+    #: v22-era {ð, z, d, v} alphabet with out-of-alphabet realizations skipped.
+    alphabet: str = "open"
 
 
-def _class_label(token: PhoneToken) -> str | None:
-    """The open-set target for a token, or None when it must be skipped.
+def _class_label(token: PhoneToken, alphabet: tuple[str, ...]) -> str | None:
+    """The target for a token, or None when it must be skipped.
 
-    Correct tokens of the drilled phones feed their own class; correct tokens
-    of the widened source set feed "other". Only /ð/-slot substitutions carry
-    a contrast label: realized /z/ and /d/ feed those classes, and every other
-    realization (t, θ, l, s, f, …) feeds "other". Substituted non-ð tokens are
-    not contrast evidence and are skipped, as are deletions and unknowns.
+    Correct tokens of the drilled phones feed their own class. In the open
+    alphabet, correct tokens of the widened source set feed "other", and every
+    non-z/d /ð/ realization folds into "other"; in the closed alphabet both
+    are skipped (the v22-era semantics). Substituted non-ð tokens are not
+    contrast evidence and are skipped, as are deletions and unknowns.
     """
+    open_set = "other" in alphabet
     if token.label == "correct":
         if token.phone in TARGET_PHONES:
             return token.phone
-        if token.phone in OTHER_SOURCE_PHONES:
+        if open_set and token.phone in OTHER_SOURCE_PHONES:
             return "other"
         return None
     if token.label == "substituted" and token.phone == "ð":
         if token.substituted_with in ("z", "d"):
             return token.substituted_with
-        if token.substituted_with:
+        if open_set and token.substituted_with:
             return "other"
     return None  # deletions, unknowns, non-ð-slot substitutions
 
@@ -114,12 +121,14 @@ def _write_segment_wav(path: Path, samples: np.ndarray) -> None:
 
 def export(options: ExportOptions) -> dict[str, object]:
     """Export the train split; returns the manifest (also written to disk)."""
+    alphabet = ALPHABET if options.alphabet == "open" else CLOSED_ALPHABET
+    other_sources = OTHER_SOURCE_PHONES if options.alphabet == "open" else ()
     audio_dir = options.out_dir / "audio"
     audio_dir.mkdir(parents=True, exist_ok=True)
     adapter = L2Arctic(options.l2arctic_root)
 
     skipped: dict[str, int] = {}
-    counts: dict[str, int] = {label: 0 for label in ALPHABET}
+    counts: dict[str, int] = {label: 0 for label in alphabet}
     split_counts: dict[str, int] = {"train": 0, "val": 0}
     rows: list[dict[str, object]] = []
 
@@ -127,7 +136,7 @@ def export(options: ExportOptions) -> dict[str, object]:
     # phones feed their own class, correct tokens of the widened source set
     # feed "other", and substituted /ð/ tokens feed the realized phone's
     # class (a /ð/ heard as /z/ IS a /z/).
-    for target in (*TARGET_PHONES, *OTHER_SOURCE_PHONES):
+    for target in (*TARGET_PHONES, *other_sources):
         for utterance in adapter.utterances(target):
             # Only the harness's TRAIN split is exported: the calibration
             # pool feeds the threshold fit and the test pool is the exam.
@@ -136,7 +145,7 @@ def export(options: ExportOptions) -> dict[str, object]:
             is_val = _utterance_is_val(utterance, options.split_seed, options.val_fraction)
             decoded = None
             for token in utterance.tokens(target):
-                label = _class_label(token)
+                label = _class_label(token, alphabet)
                 if label is None:
                     reason = (
                         token.label
@@ -191,7 +200,7 @@ def export(options: ExportOptions) -> dict[str, object]:
         rows = slot_rows + _cap_per_class(
             curriculum_rows, options.max_per_class, options.split_seed
         )
-        counts = _recount(rows, ALPHABET)
+        counts = _recount(rows, alphabet)
 
     fieldnames = [
         "filename",
@@ -213,7 +222,7 @@ def export(options: ExportOptions) -> dict[str, object]:
 
     manifest: dict[str, object] = {
         "corpus": "L2-ARCTIC",
-        "alphabet": list(ALPHABET),
+        "alphabet": list(alphabet),
         "split_seed": options.split_seed,
         "val_fraction": options.val_fraction,
         "pad_s": options.pad_s,
@@ -241,6 +250,7 @@ def main() -> None:
     parser.add_argument("--val-fraction", type=float, default=0.15)
     parser.add_argument("--pad-s", type=float, default=PAD_S)
     parser.add_argument("--max-per-class", type=int, default=None)
+    parser.add_argument("--alphabet", choices=["open", "closed"], default="open")
     args = parser.parse_args()
     manifest = export(
         ExportOptions(
@@ -250,6 +260,7 @@ def main() -> None:
             val_fraction=args.val_fraction,
             pad_s=args.pad_s,
             max_per_class=args.max_per_class,
+            alphabet=args.alphabet,
         )
     )
     print(json.dumps(manifest, indent=2))
