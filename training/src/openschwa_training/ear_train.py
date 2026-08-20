@@ -175,16 +175,26 @@ def _flush_batch(
     frames_total: int,
     feat_dir: Path,
 ) -> int:
-    """One batched encoder forward: pad, run, unbatch into shard entries."""
+    """One batched encoder forward: pad, run, unbatch into shard entries.
+
+    The attention mask is NOT optional: without it every clip's frames attend
+    across the whole padded batch, so the cached features carry the other
+    clips' audio. The head then trains on batch-contaminated features while
+    inference feeds clean single clips - the exported ear decodes garbage
+    (raw top-1 4% on the first exam was exactly this).
+    """
     max_len = max(int(p["samples"].size) for p in pending)
     padded = torch.zeros(len(pending), max_len, dtype=torch.float32)
+    mask = torch.zeros(len(pending), max_len, dtype=torch.long)
     for position, entry in enumerate(pending):
         samples = entry["samples"]
         padded[position, : samples.size] = torch.from_numpy(samples)
+        mask[position, : samples.size] = 1
     padded = padded.to(device)
+    mask = mask.to(device)
     autocast = torch.autocast(device, dtype=torch.bfloat16) if device == "cuda" else nullcontext()
     with torch.inference_mode(), autocast:
-        hidden = encoder(padded).last_hidden_state  # [B, T, 1024]
+        hidden = encoder(padded, attention_mask=mask).last_hidden_state  # [B, T, 1024]
     valid = [int(encoder._get_feat_extract_output_lengths(p["samples"].size)) for p in pending]
     for position, entry in enumerate(pending):
         feat = hidden[position, : valid[position]].float().cpu().numpy().astype(np.float16)
