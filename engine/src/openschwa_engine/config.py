@@ -68,7 +68,10 @@ class Settings(BaseSettings):
     #: interval is scored by it rather than by the aligner's posteriors; when
     #: unset or unavailable, the engine falls back to aligner-based contrast
     #: scoring. Null means "use the alignment model" (the M0/M1 behavior).
-    contrast_model_id: str | None = "tinyschwa-v1"
+    #: Null by default: a bar-failing judge must never be the default
+    #: scorer. Set explicitly (env OPENSCHWA_CONTRAST_MODEL_ID) only for a
+    #: candidate under evaluation.
+    contrast_model_id: str | None = None
 
     #: Context padding on each side of the aligned focus phone when the
     #: contrast judge scores it. The judge was trained with 0.10; a window
