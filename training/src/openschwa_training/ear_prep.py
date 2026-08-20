@@ -26,6 +26,7 @@ import csv
 import io
 import json
 import logging
+import os
 import wave
 from pathlib import Path
 
@@ -232,8 +233,9 @@ def _row_fields(source: str, row: dict[str, object]) -> tuple[str, str, str] | N
         sentence = str(row.get("text") or "").strip()
         if not sentence:
             return None
+        stem = Path(str(row.get("file") or row.get("id") or "")).stem
         return (
-            f"ls-{row.get('file') or row.get('id') or ''}".rstrip("-"),
+            f"ls-{stem}" if stem else f"ls-{row.get('id') or ''}",
             str(row.get("speaker_id") or "unknown"),
             sentence,
         )
@@ -241,9 +243,10 @@ def _row_fields(source: str, row: dict[str, object]) -> tuple[str, str, str] | N
         sentence = str(row.get("normalized_text") or "").strip()
         if not sentence:
             return None
-        audio_path = str(row.get("audio", {}).get("path") or "")
+        audio_path = Path(str(row.get("audio", {}).get("path") or ""))
+        stem = audio_path.stem or str(row.get("id") or "")
         return (
-            f"vp-{audio_path.rsplit('/', 1)[-1] or row.get('id') or ''}".rstrip("-"),
+            f"vp-{stem}",
             str(row.get("speaker_id") or "unknown"),
             sentence,
         )
@@ -325,6 +328,10 @@ def main() -> None:
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     prep(args.out, args.hours, tuple(args.source or ["librispeech"]), max_clips=args.max_clips)
+    # datasets 3.x streaming keeps a background thread that crashes at
+    # interpreter teardown (PyGILState_Release after the work is done and the
+    # manifest is flushed). Bypass finalization: the data is on disk by now.
+    os._exit(0)
 
 
 if __name__ == "__main__":
