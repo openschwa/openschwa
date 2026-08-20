@@ -76,7 +76,7 @@ def tiny_dataset(tmp_path: Path) -> Path:
             handle.setsampwidth(2)
             handle.setframerate(16_000)
             handle.writeframes(samples.tobytes())
-        label = ["ð", "z", "d", "v"][index % 4]
+        label = ["ð", "z", "d", "other"][index % 4]
         split = "train" if index < 4 else "val"
         rows.append(
             {
