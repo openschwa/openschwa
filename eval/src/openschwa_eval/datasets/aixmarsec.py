@@ -95,6 +95,10 @@ class IntonationUnit:
     expected_tone: str  # fall | rise | fall_rise | level
     transcript: str
     phones: tuple[str, ...] = ()  # canonical IPA, from the Phonemes tier
+    #: The TSM-marked word's start, in the block wav's timeline. The nuclear
+    #: glide starts here - the terminal-tone window must begin at it, not at
+    #: the unit's start (the tail after the nucleus carries no tone).
+    nucleus_s: float = 0.0
 
 
 def _parse_short_textgrid(text: str) -> list[textgrid.Tier]:
@@ -249,6 +253,7 @@ def _finish_unit(
     if offset is None or not intervals:
         return None
     tone: str | None = None
+    nucleus_xmin: float | None = None
     words: list[str] = []
     for interval in intervals:
         label = interval.text
@@ -258,6 +263,7 @@ def _finish_unit(
         for prefix in TSM_PREFIXES:
             if label.startswith(prefix):
                 tone = TSM_TONES[prefix]  # the last mark wins: that is the nucleus
+                nucleus_xmin = interval.xmin
                 label = label[len(prefix) :]
                 break
         label = re.sub(r"[|#]", "", label).strip(", ").strip()
@@ -281,6 +287,11 @@ def _finish_unit(
         expected_tone=tone,
         transcript=" ".join(words),
         phones=(_phones_in_span(phonemes_tier, start, end) if phonemes_tier is not None else ()),
+        nucleus_s=(
+            round(offset + nucleus_xmin, 4)
+            if nucleus_xmin is not None
+            else round(offset + start, 4)
+        ),
     )
 
 
@@ -357,6 +368,7 @@ class AixMarsec:
                     expected_tone=unit.expected_tone,
                     transcript=unit.transcript,
                     phones=unit.phones,
+                    nucleus_s=unit.nucleus_s,
                 )
                 units.append(unit)
             seen += 1
