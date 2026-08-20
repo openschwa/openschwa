@@ -285,12 +285,21 @@ def train(
     shards = load_shards(out_dir)
     if not shards:
         raise RuntimeError(f"{out_dir}/features has no shards - run --stage extract first")
+
+    def _ctc_valid(ref: ClipRef) -> bool:
+        """CTC requires more input frames than target tokens per item; a
+        short fast clip with a long sentence violates it and CTCLoss dies
+        with 'invalid configuration argument' mid-epoch."""
+        return len(ref.clip["tokens"].split()) < int(ref.clip["length"])
+
     train_refs: list[ClipRef] = []
     val_refs: list[ClipRef] = []
     for shard in shards:
         for position, clip in enumerate(shard.clips):
             ref = ClipRef(shard=shard, position=position)
             (val_refs if clip["split"] == "val" else train_refs).append(ref)
+    train_refs = [ref for ref in train_refs if _ctc_valid(ref)]
+    val_refs = [ref for ref in val_refs if _ctc_valid(ref)]
     log.info("train %d / val %d clips", len(train_refs), len(val_refs))
 
     total_steps = max(1, epochs * (len(train_refs) + batch_size - 1) // batch_size)
@@ -356,13 +365,29 @@ def train(
     return {"history": history}
 
 
+def _decode_ctc(preds: "list[int] | object") -> list[int]:
+    """Greedy CTC decode: collapse repeats, drop blanks."""
+    decoded: list[int] = []
+    previous: int | None = None
+    for token in preds:  # type: ignore[union-attr]
+        if token != BLANK and token != previous:
+            decoded.append(int(token))
+        previous = int(token)
+    return decoded
+
+
 def _val_accuracy(
     head: torch.nn.Module,
     arrays: dict[Path, np.ndarray],
     val_refs: list[ClipRef],
     device: str,
 ) -> float:
-    """Greedy-decoded per-frame top-1 on the val clips (exam-shaped proxy)."""
+    """Greedy-decoded sequence accuracy on the val clips (exam-shaped proxy).
+
+    Per-frame argmax compared position-wise to the token list is meaningless
+    under CTC (blank-dominated alignments); the decoded sequence must match
+    the target sequence exactly.
+    """
     head.eval()
     correct = 0
     total = 0
@@ -374,9 +399,8 @@ def _val_accuracy(
             logits = head(torch.from_numpy(feats.astype(np.float32)).unsqueeze(0).to(device))
             preds = logits.argmax(-1)[0].cpu().tolist()
             targets = [TOKEN_INDEX[t] for t in clip["tokens"].split()]
-            for pred, target in zip(preds, targets, strict=False):
-                total += 1
-                correct += 1 if pred == target else 0
+            total += 1
+            correct += 1 if _decode_ctc(preds) == targets else 0
     return correct / total if total else 0.0
 
 
