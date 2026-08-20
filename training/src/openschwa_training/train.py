@@ -13,8 +13,10 @@ import argparse
 import csv
 import json
 import logging
+import math
 import random
 import shutil
+import subprocess
 import wave
 from contextlib import nullcontext
 from dataclasses import dataclass
@@ -127,6 +129,10 @@ class TrainOptions:
     #: wall is error-confidence starvation, and the error classes are the
     #: smallest pools we have.
     augment: bool = False
+    #: Fraction of total steps spent in linear LR warmup (the rest is a cosine
+    #: decay). One optimizer lives across the whole run now; the warmup keeps
+    #: the first steps from burning the schedule.
+    warmup_frac: float = 0.1
 
 
 def load_dataset(data_dirs: list[Path]) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
@@ -196,7 +202,10 @@ def class_weight(train: list[dict[str, object]], target_boost: float = 1.0) -> l
 
 def _freeze_base(model: PhoneContrastClassifier, freeze: bool) -> None:
     for name, param in model.named_parameters():
-        if "fusion" not in name:
+        # The conv feature encoder stays frozen FOREVER: freeze_feature_encoder
+        # froze it at build time, and the old code unfroze it again at the
+        # unfreeze epoch - undoing the design's regularization on every run.
+        if "fusion" not in name and "feature_extractor" not in name:
             param.requires_grad = not freeze
 
 
@@ -271,6 +280,77 @@ def val_metrics(
     return accuracy, float(np.mean(f1s)), per_class
 
 
+def _tie_corrected_auc(pairs: list[tuple[float, int]]) -> float:
+    """Rank-sum AUC with tie correction (same maths as the eval harness)."""
+    if not pairs:
+        return float("nan")
+    n_pos = sum(1 for _, label in pairs if label)
+    n_neg = len(pairs) - n_pos
+    if not n_pos or not n_neg:
+        return float("nan")
+    ordered = sorted(pairs)
+    rank_sum = 0.0
+    index = 0
+    while index < len(ordered):
+        end = index
+        while end + 1 < len(ordered) and ordered[end + 1][0] == ordered[index][0]:
+            end += 1
+        average_rank = (index + 1 + end + 1) / 2
+        for position in range(index, end + 1):
+            if ordered[position][1]:
+                rank_sum += average_rank
+        index = end + 1
+    return (rank_sum - n_pos * (n_pos + 1) / 2) / (n_pos * n_neg)
+
+
+def val_dh_slot_metrics(
+    model: PhoneContrastClassifier, val: list[dict[str, object]], options: TrainOptions, device: str
+) -> tuple[float, float]:
+    """Exam-shaped /ð/-slot metrics over the val split.
+
+    Only rows whose target_phone is /ð/ count (canonical z/d/other rows are
+    curriculum, not exam proxy): positives are /ð/ realizations of anything
+    other than /ð/, and the score mirrors the engine's contrast score
+    log(p_best_other / p_ð). Returns (tie-corrected AUC, precision at
+    recall >= 0.4 on the same ranking).
+    """
+    max_samples = int(options.max_segment_s * 16_000)
+    dh_rows = [row for row in val if row.get("target_phone") == "ð"]
+    if not dh_rows:
+        return float("nan"), 0.0
+    scores: list[float] = []
+    labels: list[int] = []
+    model.eval()
+    with torch.inference_mode():
+        for start in range(0, len(dh_rows), options.batch_size):
+            chunk = dh_rows[start : start + options.batch_size]
+            batch = [
+                (*read_segment_and_features(row), VOCAB[str(row["label"])]) for row in chunk
+            ]
+            audio, dsp_feats, _labels, _lengths, mask = collate(batch, device, max_samples)
+            logits = model(audio, attention_mask=mask, features=dsp_feats).float()
+            probs = torch.softmax(logits, dim=-1)
+            dh_index = VOCAB["ð"]
+            others = [i for i in range(len(VOCAB)) if i != dh_index]
+            p_other = probs[:, others].max(dim=1).values
+            p_dh = probs[:, dh_index].clamp(min=1e-9)
+            scores.extend(torch.log(p_other / p_dh).cpu().tolist())
+            labels.extend(1 if str(row["label"]) != "ð" else 0 for row in chunk)
+    auc = _tie_corrected_auc(list(zip(scores, labels, strict=True)))
+    ordered = sorted(zip(scores, labels, strict=True), reverse=True)
+    n_pos = sum(labels)
+    best_precision = 0.0
+    tp = 0
+    fp = 0
+    for _, label in ordered:
+        tp += label
+        fp += 1 - label
+        if tp >= 0.4 * n_pos and n_pos:
+            best_precision = tp / (tp + fp)
+            break
+    return auc, best_precision
+
+
 def balanced_batches(
     rows: list[dict[str, object]], batch_size: int, rng: random.Random
 ) -> list[list[dict[str, object]]]:
@@ -321,25 +401,97 @@ def train(options: TrainOptions) -> dict[str, object]:
     options.out_dir.mkdir(parents=True, exist_ok=True)
     checkpoint = options.out_dir / "last.pt"
 
+    # Per-run provenance: the exact recipe, the code revision, and the data
+    # dirs this run consumed. Slot reuse made v13-v23 unreproducible; this is
+    # the fix, and it is written BEFORE any training happens.
+    git_sha = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        cwd=Path(__file__).resolve().parents[3],
+        check=False,
+    ).stdout.strip()
+    run_config = {
+        "git_sha": git_sha,
+        "data_dirs": [str(d) for d in options.data_dirs],
+        "epochs": options.epochs,
+        "freeze_epochs": options.freeze_epochs,
+        "batch_size": options.batch_size,
+        "lr_head": options.lr_head,
+        "lr_full": options.lr_full,
+        "label_smoothing": options.label_smoothing,
+        "target_boost": options.target_boost,
+        "hardneg_mult": options.hardneg_mult,
+        "augment": options.augment,
+        "warmup_frac": options.warmup_frac,
+        "seed": options.seed,
+        "max_segment_s": options.max_segment_s,
+    }
+    (options.out_dir / "run_config.json").write_text(
+        json.dumps(run_config, indent=2), encoding="utf-8"
+    )
+
     start_epoch = 0
     best_f1 = -1.0
+    best_select = float("nan")  # /ð/-slot val AUC when available, else val F1
     history: list[dict[str, object]] = []
+    step = 0
+    optimizer_state = None
+    scheduler_state = None
     if checkpoint.is_file():
         state = torch.load(checkpoint, map_location=device)
         model.load_state_dict(state["model"])
         start_epoch = state["epoch"]
         best_f1 = state.get("best_f1", -1.0)
+        best_select = state.get("best_select", float("nan"))
         history = state.get("history", [])
+        step = state.get("step", 0)
+        optimizer_state = state.get("optimizer")
+        scheduler_state = state.get("scheduler")
         log.info("resumed from %s at epoch %d", checkpoint, start_epoch)
 
-    step = 0
+    # ONE optimizer for the whole run (the old code rebuilt AdamW inside the
+    # epoch loop - moments reset every epoch, twelve cold restarts per run).
+    # Two param groups: the fusion head at lr_head, the transformer base at 0
+    # while frozen and lr_full afterwards; the conv feature encoder is never
+    # trained. Warmup+cosine rides the whole step budget.
+    head_params = [p for n, p in model.named_parameters() if "fusion" in n]
+    base_params = [
+        p
+        for n, p in model.named_parameters()
+        if "fusion" not in n and "feature_extractor" not in n
+    ]
+    optimizer = torch.optim.AdamW(
+        [
+            {"params": head_params, "lr": options.lr_head, "weight_decay": 0.01},
+            {"params": base_params, "lr": 0.0, "weight_decay": 0.01},
+        ],
+        lr=options.lr_head,
+        weight_decay=0.01,
+    )
+    batches_per_epoch = len(
+        balanced_batches(train_rows, options.batch_size, random.Random(options.seed))
+    )
+    total_steps = max(1, options.epochs * batches_per_epoch)
+    warmup_steps = max(1, int(total_steps * options.warmup_frac))
+
+    def _schedule_at(step_index: int) -> float:
+        if step_index < warmup_steps:
+            return step_index / warmup_steps
+        progress = (step_index - warmup_steps) / max(1, total_steps - warmup_steps)
+        return 0.5 * (1.0 + math.cos(math.pi * min(progress, 1.0)))
+
+    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, [_schedule_at, _schedule_at])
+    if optimizer_state is not None:
+        optimizer.load_state_dict(optimizer_state)
+    if scheduler_state is not None:
+        scheduler.load_state_dict(scheduler_state)
+
     for epoch in range(start_epoch, options.epochs):
         freeze = epoch < options.freeze_epochs
         _freeze_base(model, freeze)
-        parameters = [p for p in model.parameters() if p.requires_grad]
-        optimizer = torch.optim.AdamW(
-            parameters, lr=options.lr_head if freeze else options.lr_full, weight_decay=0.01
-        )
+        optimizer.param_groups[0]["lr"] = options.lr_head
+        optimizer.param_groups[1]["lr"] = 0.0 if freeze else options.lr_full
         model.train()
         rng = random.Random(options.seed * 1000 + epoch)
         total_loss = 0.0
@@ -370,12 +522,14 @@ def train(options: TrainOptions) -> dict[str, object]:
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
+            scheduler.step()
             total_loss += float(loss.item())
             processed += 1
             step += 1
             if options.max_steps is not None and step >= options.max_steps:
                 break
         accuracy, f1, per_class = val_metrics(model, val_rows, options, device)
+        dh_auc, dh_p_at_r04 = val_dh_slot_metrics(model, val_rows, options, device)
         history.append(
             {
                 "epoch": epoch,
@@ -383,6 +537,7 @@ def train(options: TrainOptions) -> dict[str, object]:
                 "loss": round(total_loss / max(processed, 1), 4),
                 "val_accuracy": round(accuracy, 4),
                 "val_f1": round(f1, 4),
+                "val_dh_auc": round(dh_auc, 4) if not math.isnan(dh_auc) else None,
                 "per_class": per_class,
             }
         )
@@ -391,18 +546,29 @@ def train(options: TrainOptions) -> dict[str, object]:
             {
                 "model": model.state_dict(),
                 "epoch": epoch + 1,
+                "step": step,
                 "best_f1": best_f1,
+                "best_select": best_select,
                 "history": history,
+                "optimizer": optimizer.state_dict(),
+                "scheduler": scheduler.state_dict(),
             },
             checkpoint,
         )
-        if f1 > best_f1:
+        # Exam-shaped model selection: the /ð/-slot AUC on the val split, the
+        # number the exam actually measures. Canonical z/d/other rows are
+        # curriculum and never select the model. When the val split has no
+        # /ð/-slot positives (smoke fixtures), fall back to val F1.
+        select = dh_auc if not math.isnan(dh_auc) else f1
+        if math.isnan(best_select) or select > best_select:
+            best_select = select
             best_f1 = f1
             export_model(model, options.out_dir / "model", options.base_model_dir)
         if options.max_steps is not None and step >= options.max_steps:
             break
 
     summary = {
+        "best_select": round(best_select, 4) if not math.isnan(best_select) else None,
         "best_val_f1": round(best_f1, 4),
         "history": history,
         "vocab": VOCAB,
@@ -463,6 +629,7 @@ def main() -> None:
         action="store_true",
         help="speed/noise augmentation of error segments",
     )
+    parser.add_argument("--warmup-frac", type=float, default=0.1)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--max-steps", type=int, default=None, help="smoke runs")
     args = parser.parse_args()
@@ -481,6 +648,7 @@ def main() -> None:
             label_smoothing=args.label_smoothing,
             hardneg_mult=args.hardneg_mult,
             augment=args.augment,
+            warmup_frac=args.warmup_frac,
             seed=args.seed,
             max_steps=args.max_steps,
             use_amp=not args.fp32,

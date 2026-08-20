@@ -1,12 +1,14 @@
 """Export labeled L2-ARCTIC segments for contrast fine-tuning.
 
-Only the harness's TRAIN split is exported: the held-out split is the exam and
-must stay blind. Tokens of each of the four target phones become short 16 kHz
-WAVs plus rows in labels.csv; labels are the 4-class CTC alphabet {ð, z, d, v}.
-Correct tokens of a target feed their own phone's class, and substituted /ð/
-tokens feed the realized phone's class. Tokens whose realization is outside
-the alphabet (t, θ, s, ..., deletions, unknowns) are skipped: training on them
-would be training on mislabels.
+Only the harness's TRAIN split is exported: the cal pool feeds the threshold
+fit and the test pool is the exam - both stay blind. The open-set alphabet is
+{ð, z, d, other}: correct tokens of the drilled phones feed their own class,
+correct tokens of a widened source set (θ, s, t, f, l, v) feed "other" so the
+model learns what NOT-ð/z/d sounds like, substituted /ð/ tokens feed the
+realized phone's class, and every other /ð/ realization (t, θ, l, s, f, h, …)
+folds into "other" instead of being skipped - that is the recall ceiling the
+closed 4-class head could never represent. /ð/ deletions stay out: their
+annotated interval is unreliable.
 
 The output is corpus-derived audio, so it never enters git (training/data/ is
 ignored); manifest.json records the provenance of every run.
@@ -27,7 +29,12 @@ from openschwa_engine.audio import MODEL_SAMPLE_RATE, decode_wav, resample_to_mo
 from openschwa_eval.datasets import L2Arctic, PhoneToken, Utterance
 from openschwa_eval.harness import assign_split
 
-ALPHABET = ("ð", "z", "d", "v")
+ALPHABET = ("ð", "z", "d", "other")
+#: Correct tokens of these phones feed the "other" class: what the model must
+#: learn to tell apart from ð/z/d.
+OTHER_SOURCE_PHONES = ("θ", "s", "t", "f", "l", "v")
+#: The phones whose correct tokens feed their own class.
+TARGET_PHONES = ("ð", "z", "d")
 PAD_S = 0.10  # coarticulation context on each side of the annotated interval
 
 
@@ -46,19 +53,26 @@ class ExportOptions:
 
 
 def _class_label(token: PhoneToken) -> str | None:
-    """The CTC target for a token, or None when it must be skipped.
+    """The open-set target for a token, or None when it must be skipped.
 
-    For a correct token of any target phone the realization IS the target, so
-    it feeds that phone's class. A substituted token feeds the REALIZED phone's
-    class: the model must learn what each of the four phones sounds like, and a
-    /ð/ realized as /z/ is, acoustically, a /z/. Out-of-alphabet realizations
-    and deletions are skipped - training on them would be training on mislabels.
+    Correct tokens of the drilled phones feed their own class; correct tokens
+    of the widened source set feed "other". Only /ð/-slot substitutions carry
+    a contrast label: realized /z/ and /d/ feed those classes, and every other
+    realization (t, θ, l, s, f, …) feeds "other". Substituted non-ð tokens are
+    not contrast evidence and are skipped, as are deletions and unknowns.
     """
     if token.label == "correct":
-        return token.phone
-    if token.label == "substituted" and token.substituted_with in ALPHABET:
-        return token.substituted_with
-    return None  # deletions, out-of-alphabet realizations, unknowns
+        if token.phone in TARGET_PHONES:
+            return token.phone
+        if token.phone in OTHER_SOURCE_PHONES:
+            return "other"
+        return None
+    if token.label == "substituted" and token.phone == "ð":
+        if token.substituted_with in ("z", "d"):
+            return token.substituted_with
+        if token.substituted_with:
+            return "other"
+    return None  # deletions, unknowns, non-ð-slot substitutions
 
 
 def _utterance_is_val(utterance: Utterance, seed: int, val_fraction: float) -> bool:
@@ -109,12 +123,11 @@ def export(options: ExportOptions) -> dict[str, object]:
     split_counts: dict[str, int] = {"train": 0, "val": 0}
     rows: list[dict[str, object]] = []
 
-    # Every class needs acoustic examples of ITS phone: correct tokens of each
-    # of the four target phones feed their own class, and substituted /ð/
-    # tokens feed the realized phone's class (a /ð/ heard as /z/ IS a /z/).
-    # Without this, the v class would have zero examples: L2-ARCTIC's
-    # annotators never realized /ð/ as /v/.
-    for target in ALPHABET:
+    # Every class needs acoustic examples: correct tokens of the drilled
+    # phones feed their own class, correct tokens of the widened source set
+    # feed "other", and substituted /ð/ tokens feed the realized phone's
+    # class (a /ð/ heard as /z/ IS a /z/).
+    for target in (*TARGET_PHONES, *OTHER_SOURCE_PHONES):
         for utterance in adapter.utterances(target):
             # Only the harness's TRAIN split is exported: the calibration
             # pool feeds the threshold fit and the test pool is the exam.
@@ -170,7 +183,14 @@ def export(options: ExportOptions) -> dict[str, object]:
                 split_counts[split] += 1
 
     if options.max_per_class is not None:
-        rows = _cap_per_class(rows, options.max_per_class, options.split_seed)
+        # /ð/-slot rows are the exam-shaped evidence (correct AND substituted
+        # tokens of /ð/): they are never capped. Canonical tokens of the other
+        # classes (correct z/d/θ/s/t/f/l/v) are curriculum - cap them hard.
+        slot_rows = [row for row in rows if row["target_phone"] == "ð"]
+        curriculum_rows = [row for row in rows if row["target_phone"] != "ð"]
+        rows = slot_rows + _cap_per_class(
+            curriculum_rows, options.max_per_class, options.split_seed
+        )
         counts = _recount(rows, ALPHABET)
 
     fieldnames = [
@@ -201,7 +221,11 @@ def export(options: ExportOptions) -> dict[str, object]:
         "class_counts": counts,
         "split_counts": split_counts,
         "skipped": skipped,
-        "note": "train split only; the eval harness's held-out split was never exported",
+        "label_policy": (
+            "open-set {ð, z, d, other}: ð-slot substitutions fold non-z/d realizations "
+            "into other; canonical tokens capped by max_per_class; ð-slot rows never capped"
+        ),
+        "note": "train split only; the cal and test splits were never exported",
     }
     (options.out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     return manifest

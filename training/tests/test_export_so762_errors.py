@@ -8,7 +8,8 @@ from openschwa_engine.models.phone_set import PhoneMap
 
 import openschwa_training.export_so762_errors as err
 
-IDX = {"ð": 2, "z": 3, "d": 4, "v": 5}
+# Open-set closed map: other covers every non-{ð,z,d} index (0=blank, 1=unk, 5=v).
+IDX = {"ð": 2, "z": 3, "d": 4, "other": [0, 1, 5]}
 
 
 def test_realized_phone_reads_the_dominant_mass():
@@ -16,9 +17,19 @@ def test_realized_phone_reads_the_dominant_mass():
     probs[:, 2] = 0.05  # ð
     probs[:, 3] = 0.85  # z
     probs[:, 4] = 0.05  # d
-    probs[:, 5] = 0.05  # v
+    probs[:, 5] = 0.05  # v (other)
     logp = np.log(probs).astype(np.float32)
     assert err._realized_phone(logp, np.arange(4), IDX) == "z"
+
+
+def test_realized_phone_reads_non_target_realizations_as_other():
+    probs = np.zeros((4, 6))
+    probs[:, 2] = 0.1  # ð
+    probs[:, 3] = 0.05  # z
+    probs[:, 4] = 0.05  # d
+    probs[:, 5] = 0.8  # v -> folds into other
+    logp = np.log(probs).astype(np.float32)
+    assert err._realized_phone(logp, np.arange(4), IDX) == "other"
 
 
 def test_realized_phone_requires_min_class_mass():
@@ -54,7 +65,7 @@ def test_error_exporter_keeps_bracketed_tokens_with_realized_labels(tmp_path, mo
                 model_id="fake",
                 table_name="dhz_en",
                 token_of={"ð": "ð", "z": "z", "d": "d", "v": "v"},
-                index_of=IDX,
+                index_of={"ð": 2, "z": 3, "d": 4, "v": 5},
                 blank_index=0,
             )
 

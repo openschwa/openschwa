@@ -227,6 +227,11 @@ def _contrasts(
             contrast_model, contrast_map = contrast
             if focus.ph in contrast_map.index_of:
                 valid_confusions = tuple(c for c in focus.confusions if c in contrast_map.index_of)
+                # Open-set judges (Stage 3) carry an "other" class that packs
+                # never author: when the model's vocabulary has it, it always
+                # joins the closed set - every non-drilled realization votes.
+                if "other" in contrast_map.index_of and "other" not in valid_confusions:
+                    valid_confusions = (*valid_confusions, "other")
                 if valid_confusions:
                     segment = _focus_segment(audio, phone, focus_pad_s)
                     posteriors = contrast_model.posteriors(segment)

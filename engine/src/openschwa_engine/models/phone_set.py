@@ -247,12 +247,20 @@ CHARSIU_EN: Mapping[str, str] = MappingProxyType(
 #: vocabulary is exactly {blank, unk, ð, z, d, v}, so only the drilled set maps.
 DHZ_EN: Mapping[str, str] = MappingProxyType({"ð": "ð", "z": "z", "d": "d", "v": "v"})
 
+#: Open-set variant (Stage 3): every non-ð/z/d realization folds into a single
+#: "other" class, which exists only in the model's vocabulary - authored
+#: content never names it (CANONICAL_EN is untouched).
+DHZ_OPEN_EN: Mapping[str, str] = MappingProxyType(
+    {"ð": "ð", "z": "z", "d": "d", "other": "other"}
+)
+
 #: Table name -> mapping. registry.MANIFEST names one of these per model.
 TABLES: Mapping[str, Mapping[str, str]] = MappingProxyType(
     {
         "espeak_en": ESPEAK_EN,
         "charsiu_en": CHARSIU_EN,
         "dhz_en": DHZ_EN,
+        "dhz_open_en": DHZ_OPEN_EN,
     }
 )
 
@@ -263,6 +271,7 @@ REQUIRED: Mapping[str, frozenset[str]] = MappingProxyType(
         "espeak_en": CANONICAL_EN,
         "charsiu_en": frozenset({"ð", "z", "d", "v"}),
         "dhz_en": frozenset({"ð", "z", "d", "v"}),
+        "dhz_open_en": frozenset({"ð", "z", "d", "other"}),
     }
 )
 

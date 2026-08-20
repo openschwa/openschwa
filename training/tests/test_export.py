@@ -138,11 +138,11 @@ def test_exports_only_alphabet_classes(tmp_path):
     )
     rows = list(csv.DictReader((out / "labels.csv").open(encoding="utf-8")))
     labels = sorted(r["label"] for r in rows)
-    # DH correct -> ð; DH,Z,s -> z; Z -> z; V -> v; D -> d.
-    assert labels == ["d", "v", "z", "z", "ð"]
-    assert manifest["class_counts"] == {"ð": 1, "z": 2, "d": 1, "v": 1}
-    assert manifest["skipped"]["realized /t/"] == 1
-    assert manifest["skipped"]["deleted"] == 1
+    # DH correct -> ð; DH,Z,s -> z; Z -> z; DH,T,s -> other (open-set);
+    # V correct -> other; D correct -> d; DH,D,d is a DELETION -> skipped.
+    assert labels == ["d", "other", "other", "z", "z", "ð"]
+    assert manifest["class_counts"] == {"ð": 1, "z": 2, "d": 1, "other": 2}
+    assert manifest["skipped"] == {"deleted": 1}
 
 
 def test_held_out_utterances_are_never_exported(tmp_path):
@@ -150,7 +150,7 @@ def test_held_out_utterances_are_never_exported(tmp_path):
     manifest = export(
         ExportOptions(corpus(tmp_path, _train_stem(), _test_speaker()), out, val_fraction=0.0)
     )
-    assert manifest["class_counts"] == {"ð": 0, "z": 0, "d": 0, "v": 0}
+    assert manifest["class_counts"] == {"ð": 0, "z": 0, "d": 0, "other": 0}
     assert sum(1 for _ in (out / "labels.csv").open()) == 1  # header only
 
 
@@ -170,7 +170,7 @@ def test_calibration_pool_utterances_are_never_exported(tmp_path):
     manifest = export(
         ExportOptions(corpus(tmp_path, speaker_name=cal_speaker), out, val_fraction=0.0)
     )
-    assert manifest["class_counts"] == {"ð": 0, "z": 0, "d": 0, "v": 0}
+    assert manifest["class_counts"] == {"ð": 0, "z": 0, "d": 0, "other": 0}
     assert sum(1 for _ in (out / "labels.csv").open()) == 1  # header only
 
 
@@ -183,7 +183,7 @@ def test_val_assignment_is_per_utterance(tmp_path):
             val_fraction=1.0,
         )
     )
-    assert manifest["split_counts"] == {"train": 0, "val": 5}
+    assert manifest["split_counts"] == {"train": 0, "val": 6}
     rows = list(csv.DictReader((out / "labels.csv").open(encoding="utf-8")))
     assert all(r["split"] == "val" for r in rows)
 
@@ -198,9 +198,10 @@ def test_max_per_class_caps_every_class(tmp_path):
             max_per_class=1,
         )
     )
-    assert manifest["class_counts"] == {"ð": 1, "z": 1, "d": 1, "v": 1}
+    # Curriculum rows are capped to 1 per class; /ð/-slot rows are exempt.
+    assert manifest["class_counts"] == {"ð": 1, "z": 2, "d": 1, "other": 2}
     rows = list(csv.DictReader((out / "labels.csv").open(encoding="utf-8")))
-    assert len(rows) == 4
+    assert len(rows) == 6
 
 
 def test_exported_wavs_are_16k_mono_with_real_energy(tmp_path):
@@ -215,7 +216,7 @@ def test_exported_wavs_are_16k_mono_with_real_energy(tmp_path):
         )
     )
     rows = list(csv.DictReader((out / "labels.csv").open(encoding="utf-8")))
-    assert len(rows) == 5
+    assert len(rows) == 6
     with wave.open(str(out / rows[0]["filename"]), "rb") as handle:
         assert handle.getframerate() == 16_000
         assert handle.getnchannels() == 1
@@ -234,4 +235,4 @@ def test_manifest_records_provenance(tmp_path):
     manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["corpus"] == "L2-ARCTIC"
     assert manifest["split_seed"] == 42
-    assert "held-out" in manifest["note"]
+    assert "never exported" in manifest["note"]

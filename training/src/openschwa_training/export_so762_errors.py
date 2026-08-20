@@ -31,7 +31,8 @@ from openschwa_eval.harness import assign_split
 from openschwa_training.export import _utterance_is_val, _write_segment_wav
 from openschwa_training.export_so762 import PAD_S, _align_with_posteriors
 
-REALIZED_CLASSES = ("ð", "z", "d", "v")
+#: Open-set realized classes: any non-ð/z/d realization folds into "other".
+REALIZED_CLASSES = ("ð", "z", "d", "other")
 
 
 @dataclass(frozen=True)
@@ -51,26 +52,59 @@ class ErrorExportOptions:
 def _realized_phone(
     log_probs: np.ndarray,
     frame_indices: np.ndarray | list[int] | tuple[int, ...],
-    index_of: dict[str, int],
+    closed_index_of: dict[str, int | list[int]],
     min_class_mass: float = 0.6,
 ) -> str | None:
     """The phone the aligner hears over the token's frames, or None.
 
-    Mass-weighted over the four classes (blank and unrelated vocabulary mass
-    is ignored - the same mass aggregation as the engine's contrast scoring):
-    the realized class must hold >= min_class_mass of the closed-set mass.
+    Mass-weighted over the open-set classes {ð, z, d, other}: the "other"
+    entry may map to a LIST of vocabulary indices, and its mass is the sum of
+    the per-frame maxima over those indices (the single dominant non-ð/z/d
+    realization). The realized class must hold >= min_class_mass of the
+    closed-set mass.
     """
     frames = np.asarray(frame_indices, dtype=np.int64)
     if frames.size == 0 or log_probs is None:
         return None
-    logp = log_probs[frames][:, [index_of[c] for c in REALIZED_CLASSES]].astype(np.float64)
+    names = list(closed_index_of)
+    per_class = []
+    for name in names:
+        idx = closed_index_of[name]
+        cols = [idx] if isinstance(idx, int) else list(idx)
+        if not cols:
+            per_class.append(np.full(log_probs.shape[0], -1e9))
+            continue
+        if len(cols) > 1:
+            per_class.append(log_probs[frames][:, cols].max(axis=1))
+        else:
+            per_class.append(log_probs[frames][:, cols[0]])
+    logp = np.stack(per_class, axis=1).astype(np.float64)
     shifted = logp - logp.max(axis=1, keepdims=True)
     mass = np.exp(shifted).mean(axis=0)
     mass /= mass.sum() + 1e-12
     winner = int(np.argmax(mass))
     if mass[winner] < min_class_mass:
         return None
-    return REALIZED_CLASSES[winner]
+    return names[winner]
+
+
+def _closed_map(phone_map, log_probs: np.ndarray) -> dict[str, int | list[int]]:
+    """{ð, z, d, other} -> vocabulary index / indices for the open-set vote.
+
+    "other" covers every vocabulary index that is not blank, ð, z or d: its
+    per-frame value is the max over those indices (the single dominant
+    non-ð/z/d realization).
+    """
+    used = {phone_map.index_of[c] for c in ("ð", "z", "d")}
+    used.add(phone_map.blank_index)
+    other = [i for i in range(log_probs.shape[1]) if i not in used]
+    return {
+        "ð": phone_map.index_of["ð"],
+        "z": phone_map.index_of["z"],
+        "d": phone_map.index_of["d"],
+        "other": other,
+    }
+
 
 def export_so762_errors(options: ErrorExportOptions) -> dict[str, object]:
     audio_dir = options.out_dir / 'audio'
@@ -102,7 +136,10 @@ def export_so762_errors(options: ErrorExportOptions) -> dict[str, object]:
                 skipped["token not aligned"] = skipped.get("token not aligned", 0) + 1
                 continue
             realized = _realized_phone(
-                log_probs, phone.frame_indices, dict(charsiu_map.index_of), options.min_class_mass
+                log_probs,
+                phone.frame_indices,
+                _closed_map(charsiu_map, log_probs),
+                options.min_class_mass,
             )
             if realized is None or realized == "ð":
                 skipped["aligner heard ð"] = skipped.get("aligner heard ð", 0) + 1
