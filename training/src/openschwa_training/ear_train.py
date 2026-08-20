@@ -137,6 +137,12 @@ def extract(
                 )
                 / 32768.0
             )
+        # The engine normalizes every waveform through Wav2Vec2FeatureExtractor
+        # (zero-mean, unit-variance) before the encoder. Training features from
+        # RAW audio and inference features from normalized audio are different
+        # inputs - the exported ear decodes a degenerate phone loop. Mirror the
+        # extractor's exact normalization here.
+        samples = (samples - samples.mean()) / np.sqrt(samples.var() + 1e-7)
         pending.append(
             {
                 "id": clip_id,
