@@ -19,13 +19,13 @@ def test_balanced_batches_carry_all_four_classes():
     import random as random_module
 
     rows = [
-        {"label": ["ð", "z", "d", "v"][index % 4], "filename": f"u{index}.wav"}
+        {"label": ["ð", "z", "d", "other"][index % 4], "filename": f"u{index}.wav"}
         for index in range(12)
     ]
     batches = balanced_batches(rows, 8, random_module.Random(1))
     assert len(batches) == 2
     for batch in batches:
-        assert {row["label"] for row in batch} == {"ð", "z", "d", "v"}
+        assert {row["label"] for row in batch} == {"ð", "z", "d", "other"}
 
 
 def tiny_base(tmp_path: Path) -> Path:
