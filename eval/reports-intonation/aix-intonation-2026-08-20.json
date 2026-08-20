@@ -1,0 +1,42 @@
+{
+  "units_run": 7021,
+  "test_units": 974,
+  "fall_rise_units": 749,
+  "fall_rise_accuracy": 0.3778,
+  "mean_octave_error_rate": 0.0004,
+  "per_tone": {
+    "fall": {
+      "n": 706,
+      "accuracy": 0.3881
+    },
+    "rise": {
+      "n": 43,
+      "accuracy": 0.2093
+    },
+    "fall_rise": {
+      "n": 225,
+      "accuracy": 0.1778
+    }
+  },
+  "per_annotator": {
+    "B": {
+      "n": 371,
+      "accuracy": 0.3801
+    },
+    "G": {
+      "n": 378,
+      "accuracy": 0.3757
+    }
+  },
+  "alignment": {
+    "ok": 5058,
+    "failed": 1761,
+    "skipped": 149,
+    "low_confidence": 53
+  },
+  "bar": {
+    "fall_rise_accuracy_met": false,
+    "octave_error_rate_met": true,
+    "met": false
+  }
+}
