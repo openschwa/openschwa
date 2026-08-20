@@ -513,126 +513,199 @@
     "b": 0.35075706496604053
   },
   "threshold": 0.605,
-  "status": "mirror-bar-not-met",
+  "status": "SHIPPING BAR NOT MET",
   "judge_status": "SHIPPING BAR NOT MET",
   "mirror": {
     "platt": {
-      "a": 0.014583104852852033,
-      "b": 0.09401442444326565
+      "a": 0.037207309837845884,
+      "b": -0.052347343553413396
     },
     "threshold": 0.56,
-    "status": "mirror-bar-not-met",
-    "cal_status": "ok",
+    "status": "SHIPPING BAR NOT MET",
+    "cal_status": "SHIPPING BAR NOT MET",
     "cal": {
       "tokens": 1312,
       "scored": 1311,
-      "confident": 1,
-      "correct": 1,
-      "accuracy": 1.0,
-      "coverage": 0.0008,
-      "answer_rate": 0.0008,
+      "confident": 38,
+      "correct": 22,
+      "accuracy": 0.5789,
+      "coverage": 0.029,
+      "answer_rate": 0.029,
       "unscorable": 0,
-      "top1_accuracy": 0.5439
+      "top1_accuracy": 0.5317
     },
     "test": {
       "tokens": 2410,
       "scored": 2407,
-      "confident": 2,
-      "correct": 1,
-      "accuracy": 0.5,
-      "coverage": 0.0008,
-      "answer_rate": 0.0008,
+      "confident": 53,
+      "correct": 35,
+      "accuracy": 0.6604,
+      "coverage": 0.022,
+      "answer_rate": 0.022,
       "unscorable": 0,
-      "top1_accuracy": 0.7044
+      "top1_accuracy": 0.669
     },
     "per_l1": {
       "arabic": {
-        "ok": true,
+        "ok": false,
         "tokens": 150,
         "scored": 150,
-        "confident": 0,
-        "correct": 0,
-        "accuracy": 0.0,
-        "coverage": 0.0,
-        "answer_rate": 0.0,
+        "confident": 6,
+        "correct": 6,
+        "accuracy": 1.0,
+        "coverage": 0.04,
+        "answer_rate": 0.04,
         "unscorable": 0,
-        "top1_accuracy": 0.8733
+        "top1_accuracy": 0.8533
       },
       "hindi": {
         "ok": false,
         "tokens": 158,
         "scored": 158,
-        "confident": 1,
-        "correct": 0,
-        "accuracy": 0.0,
-        "coverage": 0.0063,
-        "answer_rate": 0.0063,
+        "confident": 22,
+        "correct": 10,
+        "accuracy": 0.4545,
+        "coverage": 0.1392,
+        "answer_rate": 0.1392,
         "unscorable": 0,
         "top1_accuracy": 0.4684
       },
       "korean": {
-        "ok": true,
+        "ok": false,
         "tokens": 161,
         "scored": 161,
-        "confident": 0,
-        "correct": 0,
-        "accuracy": 0.0,
-        "coverage": 0.0,
-        "answer_rate": 0.0,
+        "confident": 6,
+        "correct": 4,
+        "accuracy": 0.6667,
+        "coverage": 0.0373,
+        "answer_rate": 0.0373,
         "unscorable": 0,
-        "top1_accuracy": 0.3727
+        "top1_accuracy": 0.3851
       },
       "mandarin": {
-        "ok": true,
+        "ok": false,
         "tokens": 1640,
         "scored": 1637,
-        "confident": 1,
-        "correct": 1,
+        "confident": 14,
+        "correct": 14,
         "accuracy": 1.0,
-        "coverage": 0.0006,
-        "answer_rate": 0.0006,
+        "coverage": 0.0085,
+        "answer_rate": 0.0086,
         "unscorable": 0,
-        "top1_accuracy": 0.8116
+        "top1_accuracy": 0.7627
       },
       "spanish": {
-        "ok": true,
+        "ok": false,
         "tokens": 152,
         "scored": 152,
-        "confident": 0,
-        "correct": 0,
-        "accuracy": 0.0,
-        "coverage": 0.0,
-        "answer_rate": 0.0,
+        "confident": 2,
+        "correct": 1,
+        "accuracy": 0.5,
+        "coverage": 0.0132,
+        "answer_rate": 0.0132,
         "unscorable": 0,
-        "top1_accuracy": 0.2237
+        "top1_accuracy": 0.2039
       },
       "vietnamese": {
-        "ok": true,
+        "ok": false,
         "tokens": 149,
         "scored": 149,
-        "confident": 0,
+        "confident": 3,
         "correct": 0,
         "accuracy": 0.0,
-        "coverage": 0.0,
-        "answer_rate": 0.0,
+        "coverage": 0.0201,
+        "answer_rate": 0.0201,
         "unscorable": 0,
-        "top1_accuracy": 0.4564
+        "top1_accuracy": 0.4497
       }
     },
     "confusion": {
       "rows": {
         "\u00f0": {
-          "\u00f0": 1
+          "h": 0,
+          "\u00f0": 34
         },
         "d": {
-          "\u00f0": 1
+          "h": 0,
+          "\u00f0": 18
+        },
+        "h": {
+          "h": 1,
+          "\u00f0": 0
         }
       },
       "columns": [
+        "h",
         "\u00f0"
       ]
     },
     "flagged_sample": [
+      {
+        "utterance_id": "l2arctic-ASI-arctic_a0023",
+        "audio_path": "data/l2arctic/ASI/wav/arctic_a0023.wav",
+        "start_s": 4.02,
+        "end_s": 4.06,
+        "l1": "hindi",
+        "heard": "\u00f0",
+        "realized": "d",
+        "p_heard_realized": 0.5609,
+        "correct_report": false
+      },
+      {
+        "utterance_id": "l2arctic-ASI-arctic_a0029",
+        "audio_path": "data/l2arctic/ASI/wav/arctic_a0029.wav",
+        "start_s": 1.92,
+        "end_s": 1.98,
+        "l1": "hindi",
+        "heard": "\u00f0",
+        "realized": "d",
+        "p_heard_realized": 0.5616,
+        "correct_report": false
+      },
+      {
+        "utterance_id": "l2arctic-ASI-arctic_a0036",
+        "audio_path": "data/l2arctic/ASI/wav/arctic_a0036.wav",
+        "start_s": 1.07,
+        "end_s": 1.1,
+        "l1": "hindi",
+        "heard": "\u00f0",
+        "realized": "d",
+        "p_heard_realized": 0.5604,
+        "correct_report": false
+      },
+      {
+        "utterance_id": "l2arctic-ASI-arctic_a0037",
+        "audio_path": "data/l2arctic/ASI/wav/arctic_a0037.wav",
+        "start_s": 0.37,
+        "end_s": 0.42,
+        "l1": "hindi",
+        "heard": "\u00f0",
+        "realized": "d",
+        "p_heard_realized": 0.5611,
+        "correct_report": false
+      },
+      {
+        "utterance_id": "l2arctic-ASI-arctic_a0039",
+        "audio_path": "data/l2arctic/ASI/wav/arctic_a0039.wav",
+        "start_s": 1.21,
+        "end_s": 1.26,
+        "l1": "hindi",
+        "heard": "\u00f0",
+        "realized": "d",
+        "p_heard_realized": 0.5601,
+        "correct_report": false
+      },
+      {
+        "utterance_id": "l2arctic-ASI-arctic_a0058",
+        "audio_path": "data/l2arctic/ASI/wav/arctic_a0058.wav",
+        "start_s": 2.79,
+        "end_s": 2.86,
+        "l1": "hindi",
+        "heard": "\u00f0",
+        "realized": "d",
+        "p_heard_realized": 0.5622,
+        "correct_report": false
+      },
       {
         "utterance_id": "l2arctic-ASI-arctic_a0111",
         "audio_path": "data/l2arctic/ASI/wav/arctic_a0111.wav",
@@ -641,18 +714,260 @@
         "l1": "hindi",
         "heard": "\u00f0",
         "realized": "d",
-        "p_heard_realized": 0.5602,
+        "p_heard_realized": 0.5627,
         "correct_report": false
       },
       {
-        "utterance_id": "so762-001570325",
-        "audio_path": "data/speechocean762/WAVE/SPEAKER0157/001570325.WAV",
+        "utterance_id": "l2arctic-ASI-arctic_a0208",
+        "audio_path": "data/l2arctic/ASI/wav/arctic_a0208.wav",
+        "start_s": 2.51,
+        "end_s": 2.57,
+        "l1": "hindi",
+        "heard": "\u00f0",
+        "realized": "d",
+        "p_heard_realized": 0.5603,
+        "correct_report": false
+      },
+      {
+        "utterance_id": "l2arctic-ASI-arctic_a0292",
+        "audio_path": "data/l2arctic/ASI/wav/arctic_a0292.wav",
+        "start_s": 1.4,
+        "end_s": 1.51,
+        "l1": "hindi",
+        "heard": "\u00f0",
+        "realized": "d",
+        "p_heard_realized": 0.5634,
+        "correct_report": false
+      },
+      {
+        "utterance_id": "l2arctic-ASI-arctic_a0384",
+        "audio_path": "data/l2arctic/ASI/wav/arctic_a0384.wav",
+        "start_s": 0.03,
+        "end_s": 0.13,
+        "l1": "hindi",
+        "heard": "\u00f0",
+        "realized": "d",
+        "p_heard_realized": 0.56,
+        "correct_report": false
+      },
+      {
+        "utterance_id": "l2arctic-ASI-arctic_b0047",
+        "audio_path": "data/l2arctic/ASI/wav/arctic_b0047.wav",
+        "start_s": 1.72,
+        "end_s": 1.77,
+        "l1": "hindi",
+        "heard": "\u00f0",
+        "realized": "d",
+        "p_heard_realized": 0.5609,
+        "correct_report": false
+      },
+      {
+        "utterance_id": "l2arctic-ASI-arctic_b0315",
+        "audio_path": "data/l2arctic/ASI/wav/arctic_b0315.wav",
+        "start_s": 2.24,
+        "end_s": 2.27,
+        "l1": "hindi",
+        "heard": "\u00f0",
+        "realized": "d",
+        "p_heard_realized": 0.5606,
+        "correct_report": false
+      },
+      {
+        "utterance_id": "l2arctic-ERMS-arctic_a0088",
+        "audio_path": "data/l2arctic/ERMS/wav/arctic_a0088.wav",
+        "start_s": 0.78,
+        "end_s": 0.84,
+        "l1": "spanish",
+        "heard": "\u00f0",
+        "realized": "d",
+        "p_heard_realized": 0.5617,
+        "correct_report": false
+      },
+      {
+        "utterance_id": "l2arctic-THV-arctic_a0019",
+        "audio_path": "data/l2arctic/THV/wav/arctic_a0019.wav",
+        "start_s": 0.66,
+        "end_s": 0.75,
+        "l1": "vietnamese",
+        "heard": "\u00f0",
+        "realized": "d",
+        "p_heard_realized": 0.5606,
+        "correct_report": false
+      },
+      {
+        "utterance_id": "l2arctic-THV-arctic_a0037",
+        "audio_path": "data/l2arctic/THV/wav/arctic_a0037.wav",
+        "start_s": 0.58,
+        "end_s": 0.64,
+        "l1": "vietnamese",
+        "heard": "\u00f0",
+        "realized": "d",
+        "p_heard_realized": 0.5606,
+        "correct_report": false
+      },
+      {
+        "utterance_id": "l2arctic-ASI-arctic_a0108",
+        "audio_path": "data/l2arctic/ASI/wav/arctic_a0108.wav",
+        "start_s": 0.81,
+        "end_s": 0.87,
+        "l1": "hindi",
+        "heard": "\u00f0",
+        "realized": "\u00f0",
+        "p_heard_realized": 0.5605,
+        "correct_report": true
+      },
+      {
+        "utterance_id": "l2arctic-ASI-arctic_b0073",
+        "audio_path": "data/l2arctic/ASI/wav/arctic_b0073.wav",
+        "start_s": 2.08,
+        "end_s": 2.16,
+        "l1": "hindi",
+        "heard": "\u00f0",
+        "realized": "\u00f0",
+        "p_heard_realized": 0.5608,
+        "correct_report": true
+      },
+      {
+        "utterance_id": "l2arctic-ABA-arctic_b0461",
+        "audio_path": "data/l2arctic/ABA/wav/arctic_b0461.wav",
+        "start_s": 1.2,
+        "end_s": 1.27,
+        "l1": "arabic",
+        "heard": "\u00f0",
+        "realized": "\u00f0",
+        "p_heard_realized": 0.5616,
+        "correct_report": true
+      },
+      {
+        "utterance_id": "l2arctic-YKWK-arctic_a0137",
+        "audio_path": "data/l2arctic/YKWK/wav/arctic_a0137.wav",
+        "start_s": 0.0,
+        "end_s": 0.06,
+        "l1": "korean",
+        "heard": "\u00f0",
+        "realized": "\u00f0",
+        "p_heard_realized": 0.5645,
+        "correct_report": true
+      },
+      {
+        "utterance_id": "so762-024510247",
+        "audio_path": "data/speechocean762/WAVE/SPEAKER2451/024510247.WAV",
         "start_s": null,
         "end_s": null,
         "l1": "mandarin",
         "heard": "\u00f0",
         "realized": "\u00f0",
-        "p_heard_realized": 0.5623,
+        "p_heard_realized": 0.56,
+        "correct_report": true
+      },
+      {
+        "utterance_id": "so762-000240073",
+        "audio_path": "data/speechocean762/WAVE/SPEAKER0024/000240073.WAV",
+        "start_s": null,
+        "end_s": null,
+        "l1": "mandarin",
+        "heard": "\u00f0",
+        "realized": "\u00f0",
+        "p_heard_realized": 0.5639,
+        "correct_report": true
+      },
+      {
+        "utterance_id": "so762-020020108",
+        "audio_path": "data/speechocean762/WAVE/SPEAKER2002/020020108.WAV",
+        "start_s": null,
+        "end_s": null,
+        "l1": "mandarin",
+        "heard": "\u00f0",
+        "realized": "\u00f0",
+        "p_heard_realized": 0.5621,
+        "correct_report": true
+      },
+      {
+        "utterance_id": "l2arctic-BWC-arctic_a0037",
+        "audio_path": "data/l2arctic/BWC/wav/arctic_a0037.wav",
+        "start_s": 0.66,
+        "end_s": 0.72,
+        "l1": "mandarin",
+        "heard": "\u00f0",
+        "realized": "\u00f0",
+        "p_heard_realized": 0.5617,
+        "correct_report": true
+      },
+      {
+        "utterance_id": "so762-001570030",
+        "audio_path": "data/speechocean762/WAVE/SPEAKER0157/001570030.WAV",
+        "start_s": null,
+        "end_s": null,
+        "l1": "mandarin",
+        "heard": "\u00f0",
+        "realized": "\u00f0",
+        "p_heard_realized": 0.5604,
+        "correct_report": true
+      },
+      {
+        "utterance_id": "so762-001200210",
+        "audio_path": "data/speechocean762/WAVE/SPEAKER0120/001200210.WAV",
+        "start_s": null,
+        "end_s": null,
+        "l1": "mandarin",
+        "heard": "\u00f0",
+        "realized": "\u00f0",
+        "p_heard_realized": 0.5637,
+        "correct_report": true
+      },
+      {
+        "utterance_id": "l2arctic-ASI-arctic_b0317",
+        "audio_path": "data/l2arctic/ASI/wav/arctic_b0317.wav",
+        "start_s": 1.15,
+        "end_s": 1.19,
+        "l1": "hindi",
+        "heard": "\u00f0",
+        "realized": "\u00f0",
+        "p_heard_realized": 0.5625,
+        "correct_report": true
+      },
+      {
+        "utterance_id": "l2arctic-ASI-arctic_a0120",
+        "audio_path": "data/l2arctic/ASI/wav/arctic_a0120.wav",
+        "start_s": 1.24,
+        "end_s": 1.29,
+        "l1": "hindi",
+        "heard": "\u00f0",
+        "realized": "\u00f0",
+        "p_heard_realized": 0.5641,
+        "correct_report": true
+      },
+      {
+        "utterance_id": "l2arctic-ASI-arctic_a0191",
+        "audio_path": "data/l2arctic/ASI/wav/arctic_a0191.wav",
+        "start_s": 0.7,
+        "end_s": 0.74,
+        "l1": "hindi",
+        "heard": "\u00f0",
+        "realized": "\u00f0",
+        "p_heard_realized": 0.5606,
+        "correct_report": true
+      },
+      {
+        "utterance_id": "so762-010990048",
+        "audio_path": "data/speechocean762/WAVE/SPEAKER1099/010990048.WAV",
+        "start_s": null,
+        "end_s": null,
+        "l1": "mandarin",
+        "heard": "\u00f0",
+        "realized": "\u00f0",
+        "p_heard_realized": 0.5645,
+        "correct_report": true
+      },
+      {
+        "utterance_id": "l2arctic-ASI-arctic_a0096",
+        "audio_path": "data/l2arctic/ASI/wav/arctic_a0096.wav",
+        "start_s": 3.8,
+        "end_s": 3.84,
+        "l1": "hindi",
+        "heard": "\u00f0",
+        "realized": "\u00f0",
+        "p_heard_realized": 0.5642,
         "correct_report": true
       }
     ]
@@ -808,8 +1123,8 @@
     "mean_ok_confidence": 0.9001
   },
   "latency": {
-    "cold_ms": 24.0,
-    "median_warm_ms": 20.3
+    "cold_ms": 24.8,
+    "median_warm_ms": 20.5
   },
   "download_bytes": 377706220,
   "flagged_sample": [

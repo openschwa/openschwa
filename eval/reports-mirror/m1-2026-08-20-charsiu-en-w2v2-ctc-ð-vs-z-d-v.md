@@ -3,23 +3,24 @@
 - model: charsiu-en-w2v2-ctc
 - contrast: /ð/ vs ['z', 'd', 'v']
 - tokens: 0 train / 1312 cal / 2410 held-out
-- **status: mirror-bar-not-met** (the mirror; judge: SHIPPING BAR NOT MET)
+- **status: SHIPPING BAR NOT MET** (the mirror; judge: SHIPPING BAR NOT MET)
 
 ## Mirror - what the ear heard (shipped line)
 
-- Platt: p = sigmoid(0.015 * hearing_score + 0.094)  [P(heard == realized)]
+- Platt: p = sigmoid(0.037 * hearing_score + -0.052)  [P(heard == realized)]
 - threshold: 0.56
-- cal: accuracy 1.0 / coverage 0.0008 (cal status ok)
-- **held-out: accuracy 0.5 / coverage 0.0008** / answer-rate 0.0008
-- raw top-1 hearing accuracy (no gating): 0.7044
-- confident reports 2 of 2410 tokens (scored 2407; unscorable 0)
+- cal: accuracy 0.5789 / coverage 0.029 (cal status SHIPPING BAR NOT MET)
+- **held-out: accuracy 0.6604 / coverage 0.022** / answer-rate 0.022
+- raw top-1 hearing accuracy (no gating): 0.669
+- confident reports 53 of 2410 tokens (scored 2407; unscorable 0)
 
 ### realized x heard (confident reports)
 
-| realized \ heard | /ð/ |
-|---|---|
-| /ð/ | 1 |
-| /d/ | 1 |
+| realized \ heard | /h/ | /ð/ |
+|---|---|---|
+| /ð/ | 0 | 34 |
+| /d/ | 0 | 18 |
+| /h/ | 1 | 0 |
 
 ### Mirror per L1 (held-out)
 
@@ -29,17 +30,45 @@ only - it never gates the bar.
 
 | l1 | tokens | confident | accuracy | coverage | fair |
 |---|---|---|---|---|---|
-| arabic | 150 | 0 | 0.0 | 0.0 | True |
-| hindi | 158 | 1 | 0.0 | 0.0063 | False |
-| korean | 161 | 0 | 0.0 | 0.0 | True |
-| mandarin | 1640 | 1 | 1.0 | 0.0006 | True |
-| spanish | 152 | 0 | 0.0 | 0.0 | True |
-| vietnamese | 149 | 0 | 0.0 | 0.0 | True |
+| arabic | 150 | 6 | 1.0 | 0.04 | False |
+| hindi | 158 | 22 | 0.4545 | 0.1392 | False |
+| korean | 161 | 6 | 0.6667 | 0.0373 | False |
+| mandarin | 1640 | 14 | 1.0 | 0.0085 | False |
+| spanish | 152 | 2 | 0.5 | 0.0132 | False |
+| vietnamese | 149 | 3 | 0.0 | 0.0201 | False |
 
 ### Mirror spot-check (confident reports, mishearings first)
 
-- [WRONG] l2arctic-ASI-arctic_a0111 heard /ð/, realized /d/ (p=0.5602) l1=hindi data/l2arctic/ASI/wav/arctic_a0111.wav
-- [right] so762-001570325 heard /ð/, realized /ð/ (p=0.5623) l1=mandarin data/speechocean762/WAVE/SPEAKER0157/001570325.WAV
+- [WRONG] l2arctic-ASI-arctic_a0023 heard /ð/, realized /d/ (p=0.5609) l1=hindi data/l2arctic/ASI/wav/arctic_a0023.wav
+- [WRONG] l2arctic-ASI-arctic_a0029 heard /ð/, realized /d/ (p=0.5616) l1=hindi data/l2arctic/ASI/wav/arctic_a0029.wav
+- [WRONG] l2arctic-ASI-arctic_a0036 heard /ð/, realized /d/ (p=0.5604) l1=hindi data/l2arctic/ASI/wav/arctic_a0036.wav
+- [WRONG] l2arctic-ASI-arctic_a0037 heard /ð/, realized /d/ (p=0.5611) l1=hindi data/l2arctic/ASI/wav/arctic_a0037.wav
+- [WRONG] l2arctic-ASI-arctic_a0039 heard /ð/, realized /d/ (p=0.5601) l1=hindi data/l2arctic/ASI/wav/arctic_a0039.wav
+- [WRONG] l2arctic-ASI-arctic_a0058 heard /ð/, realized /d/ (p=0.5622) l1=hindi data/l2arctic/ASI/wav/arctic_a0058.wav
+- [WRONG] l2arctic-ASI-arctic_a0111 heard /ð/, realized /d/ (p=0.5627) l1=hindi data/l2arctic/ASI/wav/arctic_a0111.wav
+- [WRONG] l2arctic-ASI-arctic_a0208 heard /ð/, realized /d/ (p=0.5603) l1=hindi data/l2arctic/ASI/wav/arctic_a0208.wav
+- [WRONG] l2arctic-ASI-arctic_a0292 heard /ð/, realized /d/ (p=0.5634) l1=hindi data/l2arctic/ASI/wav/arctic_a0292.wav
+- [WRONG] l2arctic-ASI-arctic_a0384 heard /ð/, realized /d/ (p=0.56) l1=hindi data/l2arctic/ASI/wav/arctic_a0384.wav
+- [WRONG] l2arctic-ASI-arctic_b0047 heard /ð/, realized /d/ (p=0.5609) l1=hindi data/l2arctic/ASI/wav/arctic_b0047.wav
+- [WRONG] l2arctic-ASI-arctic_b0315 heard /ð/, realized /d/ (p=0.5606) l1=hindi data/l2arctic/ASI/wav/arctic_b0315.wav
+- [WRONG] l2arctic-ERMS-arctic_a0088 heard /ð/, realized /d/ (p=0.5617) l1=spanish data/l2arctic/ERMS/wav/arctic_a0088.wav
+- [WRONG] l2arctic-THV-arctic_a0019 heard /ð/, realized /d/ (p=0.5606) l1=vietnamese data/l2arctic/THV/wav/arctic_a0019.wav
+- [WRONG] l2arctic-THV-arctic_a0037 heard /ð/, realized /d/ (p=0.5606) l1=vietnamese data/l2arctic/THV/wav/arctic_a0037.wav
+- [right] l2arctic-ASI-arctic_a0108 heard /ð/, realized /ð/ (p=0.5605) l1=hindi data/l2arctic/ASI/wav/arctic_a0108.wav
+- [right] l2arctic-ASI-arctic_b0073 heard /ð/, realized /ð/ (p=0.5608) l1=hindi data/l2arctic/ASI/wav/arctic_b0073.wav
+- [right] l2arctic-ABA-arctic_b0461 heard /ð/, realized /ð/ (p=0.5616) l1=arabic data/l2arctic/ABA/wav/arctic_b0461.wav
+- [right] l2arctic-YKWK-arctic_a0137 heard /ð/, realized /ð/ (p=0.5645) l1=korean data/l2arctic/YKWK/wav/arctic_a0137.wav
+- [right] so762-024510247 heard /ð/, realized /ð/ (p=0.56) l1=mandarin data/speechocean762/WAVE/SPEAKER2451/024510247.WAV
+- [right] so762-000240073 heard /ð/, realized /ð/ (p=0.5639) l1=mandarin data/speechocean762/WAVE/SPEAKER0024/000240073.WAV
+- [right] so762-020020108 heard /ð/, realized /ð/ (p=0.5621) l1=mandarin data/speechocean762/WAVE/SPEAKER2002/020020108.WAV
+- [right] l2arctic-BWC-arctic_a0037 heard /ð/, realized /ð/ (p=0.5617) l1=mandarin data/l2arctic/BWC/wav/arctic_a0037.wav
+- [right] so762-001570030 heard /ð/, realized /ð/ (p=0.5604) l1=mandarin data/speechocean762/WAVE/SPEAKER0157/001570030.WAV
+- [right] so762-001200210 heard /ð/, realized /ð/ (p=0.5637) l1=mandarin data/speechocean762/WAVE/SPEAKER0120/001200210.WAV
+- [right] l2arctic-ASI-arctic_b0317 heard /ð/, realized /ð/ (p=0.5625) l1=hindi data/l2arctic/ASI/wav/arctic_b0317.wav
+- [right] l2arctic-ASI-arctic_a0120 heard /ð/, realized /ð/ (p=0.5641) l1=hindi data/l2arctic/ASI/wav/arctic_a0120.wav
+- [right] l2arctic-ASI-arctic_a0191 heard /ð/, realized /ð/ (p=0.5606) l1=hindi data/l2arctic/ASI/wav/arctic_a0191.wav
+- [right] so762-010990048 heard /ð/, realized /ð/ (p=0.5645) l1=mandarin data/speechocean762/WAVE/SPEAKER1099/010990048.WAV
+- [right] l2arctic-ASI-arctic_a0096 heard /ð/, realized /ð/ (p=0.5642) l1=hindi data/l2arctic/ASI/wav/arctic_a0096.wav
 
 ## Judge variants (research archive - parked by the mirror pivot)
 
@@ -94,7 +123,7 @@ not.
 
 ## Latency
 
-- cold 24.0 ms, median warm 20.3 ms
+- cold 24.8 ms, median warm 20.5 ms
 - download size 0.38 GB
 
 ## Flagged items for human spot-check

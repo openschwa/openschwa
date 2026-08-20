@@ -517,32 +517,32 @@
   "judge_status": "pooled-bar-not-met",
   "mirror": {
     "platt": {
-      "a": 0.2753058148003503,
-      "b": -0.052126874014430176
+      "a": 0.27537729396247435,
+      "b": -0.05219856928883168
     },
-    "threshold": 0.6,
+    "threshold": 0.62,
     "status": "SHIPPING BAR NOT MET",
     "cal_status": "SHIPPING BAR NOT MET",
     "cal": {
       "tokens": 1312,
       "scored": 1311,
-      "confident": 319,
-      "correct": 223,
-      "accuracy": 0.7035,
-      "coverage": 0.2431,
-      "answer_rate": 0.2433,
+      "confident": 245,
+      "correct": 171,
+      "accuracy": 0.7037,
+      "coverage": 0.1867,
+      "answer_rate": 0.1869,
       "unscorable": 2,
       "top1_accuracy": 0.563
     },
     "test": {
       "tokens": 2410,
       "scored": 2407,
-      "confident": 821,
-      "correct": 639,
-      "accuracy": 0.7802,
-      "coverage": 0.3407,
-      "answer_rate": 0.3411,
-      "unscorable": 2,
+      "confident": 650,
+      "correct": 513,
+      "accuracy": 0.7904,
+      "coverage": 0.2697,
+      "answer_rate": 0.27,
+      "unscorable": 1,
       "top1_accuracy": 0.6233
     },
     "per_l1": {
@@ -550,11 +550,11 @@
         "ok": false,
         "tokens": 150,
         "scored": 150,
-        "confident": 59,
-        "correct": 52,
-        "accuracy": 0.8814,
-        "coverage": 0.3933,
-        "answer_rate": 0.3933,
+        "confident": 43,
+        "correct": 39,
+        "accuracy": 0.907,
+        "coverage": 0.2867,
+        "answer_rate": 0.2867,
         "unscorable": 0,
         "top1_accuracy": 0.6933
       },
@@ -562,11 +562,11 @@
         "ok": false,
         "tokens": 158,
         "scored": 158,
-        "confident": 13,
-        "correct": 5,
-        "accuracy": 0.3846,
-        "coverage": 0.0823,
-        "answer_rate": 0.0823,
+        "confident": 8,
+        "correct": 3,
+        "accuracy": 0.375,
+        "coverage": 0.0506,
+        "answer_rate": 0.0506,
         "unscorable": 0,
         "top1_accuracy": 0.4494
       },
@@ -574,11 +574,11 @@
         "ok": false,
         "tokens": 161,
         "scored": 161,
-        "confident": 13,
-        "correct": 5,
-        "accuracy": 0.3846,
-        "coverage": 0.0807,
-        "answer_rate": 0.0807,
+        "confident": 10,
+        "correct": 4,
+        "accuracy": 0.4,
+        "coverage": 0.0621,
+        "answer_rate": 0.0621,
         "unscorable": 0,
         "top1_accuracy": 0.4037
       },
@@ -586,23 +586,23 @@
         "ok": false,
         "tokens": 1640,
         "scored": 1637,
-        "confident": 684,
-        "correct": 555,
-        "accuracy": 0.8138,
-        "coverage": 0.4171,
-        "answer_rate": 0.4178,
-        "unscorable": 2,
+        "confident": 559,
+        "correct": 457,
+        "accuracy": 0.819,
+        "coverage": 0.3409,
+        "answer_rate": 0.3415,
+        "unscorable": 1,
         "top1_accuracy": 0.696
       },
       "spanish": {
         "ok": false,
         "tokens": 152,
         "scored": 152,
-        "confident": 26,
-        "correct": 5,
-        "accuracy": 0.1923,
-        "coverage": 0.1711,
-        "answer_rate": 0.1711,
+        "confident": 15,
+        "correct": 3,
+        "accuracy": 0.2,
+        "coverage": 0.0987,
+        "answer_rate": 0.0987,
         "unscorable": 0,
         "top1_accuracy": 0.2632
       },
@@ -610,11 +610,11 @@
         "ok": false,
         "tokens": 149,
         "scored": 149,
-        "confident": 26,
-        "correct": 17,
-        "accuracy": 0.6538,
-        "coverage": 0.1745,
-        "answer_rate": 0.1745,
+        "confident": 15,
+        "correct": 7,
+        "accuracy": 0.4667,
+        "coverage": 0.1007,
+        "answer_rate": 0.1007,
         "unscorable": 0,
         "top1_accuracy": 0.5436
       }
@@ -622,22 +622,16 @@
     "confusion": {
       "rows": {
         "\u00f0": {
-          "d": 23,
-          "v": 30,
-          "z": 92,
-          "\u00f0": 620
+          "d": 12,
+          "v": 22,
+          "z": 79,
+          "\u00f0": 498
         },
         "d": {
-          "d": 11,
+          "d": 8,
           "v": 5,
           "z": 1,
-          "\u00f0": 21
-        },
-        "s": {
-          "d": 0,
-          "v": 0,
-          "z": 1,
-          "\u00f0": 0
+          "\u00f0": 11
         },
         "t": {
           "d": 1,
@@ -648,11 +642,11 @@
         "z": {
           "d": 0,
           "v": 0,
-          "z": 8,
+          "z": 7,
           "\u00f0": 0
         },
         "\u03b8": {
-          "d": 1,
+          "d": 0,
           "v": 1,
           "z": 0,
           "\u00f0": 0
@@ -673,17 +667,6 @@
     },
     "flagged_sample": [
       {
-        "utterance_id": "l2arctic-ABA-arctic_a0003",
-        "audio_path": "data/l2arctic/ABA/wav/arctic_a0003.wav",
-        "start_s": 3.18,
-        "end_s": 3.41,
-        "l1": "arabic",
-        "heard": "v",
-        "realized": "\u00f0",
-        "p_heard_realized": 0.6051,
-        "correct_report": false
-      },
-      {
         "utterance_id": "l2arctic-ABA-arctic_a0036",
         "audio_path": "data/l2arctic/ABA/wav/arctic_a0036.wav",
         "start_s": 1.76,
@@ -695,17 +678,6 @@
         "correct_report": false
       },
       {
-        "utterance_id": "l2arctic-ABA-arctic_a0078",
-        "audio_path": "data/l2arctic/ABA/wav/arctic_a0078.wav",
-        "start_s": 3.41,
-        "end_s": 3.5,
-        "l1": "arabic",
-        "heard": "d",
-        "realized": "\u03b8",
-        "p_heard_realized": 0.608,
-        "correct_report": false
-      },
-      {
         "utterance_id": "l2arctic-ABA-arctic_a0117",
         "audio_path": "data/l2arctic/ABA/wav/arctic_a0117.wav",
         "start_s": 1.51,
@@ -713,7 +685,7 @@
         "l1": "arabic",
         "heard": "z",
         "realized": "\u00f0",
-        "p_heard_realized": 0.7735,
+        "p_heard_realized": 0.7736,
         "correct_report": false
       },
       {
@@ -728,17 +700,6 @@
         "correct_report": false
       },
       {
-        "utterance_id": "l2arctic-ABA-arctic_a0159",
-        "audio_path": "data/l2arctic/ABA/wav/arctic_a0159.wav",
-        "start_s": 0.77,
-        "end_s": 0.82,
-        "l1": "arabic",
-        "heard": "z",
-        "realized": "s",
-        "p_heard_realized": 0.6074,
-        "correct_report": false
-      },
-      {
         "utterance_id": "l2arctic-ABA-arctic_a0461",
         "audio_path": "data/l2arctic/ABA/wav/arctic_a0461.wav",
         "start_s": 2.04,
@@ -750,17 +711,6 @@
         "correct_report": false
       },
       {
-        "utterance_id": "l2arctic-ASI-arctic_a0031",
-        "audio_path": "data/l2arctic/ASI/wav/arctic_a0031.wav",
-        "start_s": 0.03,
-        "end_s": 0.11,
-        "l1": "hindi",
-        "heard": "\u00f0",
-        "realized": "d",
-        "p_heard_realized": 0.6066,
-        "correct_report": false
-      },
-      {
         "utterance_id": "l2arctic-ASI-arctic_a0047",
         "audio_path": "data/l2arctic/ASI/wav/arctic_a0047.wav",
         "start_s": 2.82,
@@ -768,7 +718,7 @@
         "l1": "hindi",
         "heard": "v",
         "realized": "d",
-        "p_heard_realized": 0.6496,
+        "p_heard_realized": 0.6497,
         "correct_report": false
       },
       {
@@ -816,190 +766,234 @@
         "correct_report": false
       },
       {
-        "utterance_id": "l2arctic-ASI-arctic_b0136",
-        "audio_path": "data/l2arctic/ASI/wav/arctic_b0136.wav",
-        "start_s": 1.4,
-        "end_s": 1.43,
-        "l1": "hindi",
-        "heard": "d",
-        "realized": "\u00f0",
-        "p_heard_realized": 0.6108,
+        "utterance_id": "l2arctic-BWC-arctic_a0081",
+        "audio_path": "data/l2arctic/BWC/wav/arctic_a0081.wav",
+        "start_s": 1.89,
+        "end_s": 1.92,
+        "l1": "mandarin",
+        "heard": "v",
+        "realized": "\u2205",
+        "p_heard_realized": 0.6241,
         "correct_report": false
       },
       {
-        "utterance_id": "l2arctic-ASI-arctic_b0215",
-        "audio_path": "data/l2arctic/ASI/wav/arctic_b0215.wav",
-        "start_s": 2.3,
-        "end_s": 2.38,
-        "l1": "hindi",
-        "heard": "d",
-        "realized": "\u00f0",
-        "p_heard_realized": 0.6127,
+        "utterance_id": "l2arctic-BWC-arctic_a0139",
+        "audio_path": "data/l2arctic/BWC/wav/arctic_a0139.wav",
+        "start_s": 6.47,
+        "end_s": 6.6172,
+        "l1": "mandarin",
+        "heard": "v",
+        "realized": "\u03b8",
+        "p_heard_realized": 0.6883,
         "correct_report": false
       },
       {
-        "utterance_id": "so762-007360299",
-        "audio_path": "data/speechocean762/WAVE/SPEAKER0736/007360299.WAV",
+        "utterance_id": "l2arctic-BWC-arctic_a0575",
+        "audio_path": "data/l2arctic/BWC/wav/arctic_a0575.wav",
+        "start_s": 2.3066,
+        "end_s": 2.33,
+        "l1": "mandarin",
+        "heard": "z",
+        "realized": "\u2205",
+        "p_heard_realized": 0.7282,
+        "correct_report": false
+      },
+      {
+        "utterance_id": "l2arctic-BWC-arctic_b0400",
+        "audio_path": "data/l2arctic/BWC/wav/arctic_b0400.wav",
+        "start_s": 1.84,
+        "end_s": 1.89,
+        "l1": "mandarin",
+        "heard": "v",
+        "realized": "\u2205",
+        "p_heard_realized": 0.6837,
+        "correct_report": false
+      },
+      {
+        "utterance_id": "l2arctic-ERMS-arctic_a0029",
+        "audio_path": "data/l2arctic/ERMS/wav/arctic_a0029.wav",
+        "start_s": 1.99,
+        "end_s": 2.05,
+        "l1": "spanish",
+        "heard": "v",
+        "realized": "d",
+        "p_heard_realized": 0.6945,
+        "correct_report": false
+      },
+      {
+        "utterance_id": "l2arctic-ERMS-arctic_a0032",
+        "audio_path": "data/l2arctic/ERMS/wav/arctic_a0032.wav",
+        "start_s": 0.44,
+        "end_s": 0.54,
+        "l1": "spanish",
+        "heard": "\u00f0",
+        "realized": "d",
+        "p_heard_realized": 0.6319,
+        "correct_report": false
+      },
+      {
+        "utterance_id": "so762-020300097",
+        "audio_path": "data/speechocean762/WAVE/SPEAKER2030/020300097.WAV",
         "start_s": null,
         "end_s": null,
         "l1": "mandarin",
         "heard": "\u00f0",
         "realized": "\u00f0",
-        "p_heard_realized": 0.6413,
+        "p_heard_realized": 0.6968,
         "correct_report": true
       },
       {
-        "utterance_id": "so762-060670049",
-        "audio_path": "data/speechocean762/WAVE/SPEAKER6067/060670049.WAV",
+        "utterance_id": "so762-020140004",
+        "audio_path": "data/speechocean762/WAVE/SPEAKER2014/020140004.WAV",
         "start_s": null,
         "end_s": null,
         "l1": "mandarin",
         "heard": "\u00f0",
         "realized": "\u00f0",
-        "p_heard_realized": 0.6071,
+        "p_heard_realized": 0.6772,
         "correct_report": true
       },
       {
-        "utterance_id": "so762-030140144",
-        "audio_path": "data/speechocean762/WAVE/SPEAKER3014/030140144.WAV",
+        "utterance_id": "so762-054280062",
+        "audio_path": "data/speechocean762/WAVE/SPEAKER5428/054280062.WAV",
         "start_s": null,
         "end_s": null,
         "l1": "mandarin",
         "heard": "\u00f0",
         "realized": "\u00f0",
-        "p_heard_realized": 0.654,
+        "p_heard_realized": 0.6509,
         "correct_report": true
       },
       {
-        "utterance_id": "so762-020140059",
-        "audio_path": "data/speechocean762/WAVE/SPEAKER2014/020140059.WAV",
+        "utterance_id": "so762-007650192",
+        "audio_path": "data/speechocean762/WAVE/SPEAKER0765/007650192.WAV",
         "start_s": null,
         "end_s": null,
         "l1": "mandarin",
         "heard": "\u00f0",
         "realized": "\u00f0",
-        "p_heard_realized": 0.6131,
+        "p_heard_realized": 0.7226,
         "correct_report": true
       },
       {
-        "utterance_id": "so762-010500163",
-        "audio_path": "data/speechocean762/WAVE/SPEAKER1050/010500163.WAV",
+        "utterance_id": "so762-096330023",
+        "audio_path": "data/speechocean762/WAVE/SPEAKER9633/096330023.WAV",
         "start_s": null,
         "end_s": null,
         "l1": "mandarin",
         "heard": "\u00f0",
         "realized": "\u00f0",
-        "p_heard_realized": 0.6122,
+        "p_heard_realized": 0.6224,
         "correct_report": true
       },
       {
-        "utterance_id": "so762-096230007",
-        "audio_path": "data/speechocean762/WAVE/SPEAKER9623/096230007.WAV",
+        "utterance_id": "so762-003060107",
+        "audio_path": "data/speechocean762/WAVE/SPEAKER0306/003060107.WAV",
         "start_s": null,
         "end_s": null,
         "l1": "mandarin",
         "heard": "\u00f0",
         "realized": "\u00f0",
-        "p_heard_realized": 0.6299,
+        "p_heard_realized": 0.6699,
         "correct_report": true
       },
       {
-        "utterance_id": "so762-060990155",
-        "audio_path": "data/speechocean762/WAVE/SPEAKER6099/060990155.WAV",
+        "utterance_id": "so762-096230006",
+        "audio_path": "data/speechocean762/WAVE/SPEAKER9623/096230006.WAV",
         "start_s": null,
         "end_s": null,
         "l1": "mandarin",
         "heard": "\u00f0",
         "realized": "\u00f0",
-        "p_heard_realized": 0.6724,
+        "p_heard_realized": 0.6436,
         "correct_report": true
       },
       {
-        "utterance_id": "so762-004570283",
-        "audio_path": "data/speechocean762/WAVE/SPEAKER0457/004570283.WAV",
+        "utterance_id": "so762-014200076",
+        "audio_path": "data/speechocean762/WAVE/SPEAKER1420/014200076.WAV",
         "start_s": null,
         "end_s": null,
         "l1": "mandarin",
         "heard": "\u00f0",
         "realized": "\u00f0",
-        "p_heard_realized": 0.6161,
+        "p_heard_realized": 0.6225,
         "correct_report": true
       },
       {
-        "utterance_id": "so762-007650337",
-        "audio_path": "data/speechocean762/WAVE/SPEAKER0765/007650337.WAV",
+        "utterance_id": "so762-015020113",
+        "audio_path": "data/speechocean762/WAVE/SPEAKER1502/015020113.WAV",
         "start_s": null,
         "end_s": null,
         "l1": "mandarin",
         "heard": "\u00f0",
         "realized": "\u00f0",
-        "p_heard_realized": 0.7038,
+        "p_heard_realized": 0.6346,
         "correct_report": true
       },
       {
-        "utterance_id": "so762-003060229",
-        "audio_path": "data/speechocean762/WAVE/SPEAKER0306/003060229.WAV",
+        "utterance_id": "so762-024410322",
+        "audio_path": "data/speechocean762/WAVE/SPEAKER2441/024410322.WAV",
         "start_s": null,
         "end_s": null,
         "l1": "mandarin",
         "heard": "\u00f0",
         "realized": "\u00f0",
-        "p_heard_realized": 0.627,
+        "p_heard_realized": 0.6447,
         "correct_report": true
       },
       {
-        "utterance_id": "so762-096330020",
-        "audio_path": "data/speechocean762/WAVE/SPEAKER9633/096330020.WAV",
+        "utterance_id": "so762-030750170",
+        "audio_path": "data/speechocean762/WAVE/SPEAKER3075/030750170.WAV",
         "start_s": null,
         "end_s": null,
         "l1": "mandarin",
         "heard": "\u00f0",
         "realized": "\u00f0",
-        "p_heard_realized": 0.6795,
+        "p_heard_realized": 0.6513,
         "correct_report": true
       },
       {
-        "utterance_id": "so762-030270026",
-        "audio_path": "data/speechocean762/WAVE/SPEAKER3027/030270026.WAV",
+        "utterance_id": "so762-096180008",
+        "audio_path": "data/speechocean762/WAVE/SPEAKER9618/096180008.WAV",
         "start_s": null,
         "end_s": null,
         "l1": "mandarin",
         "heard": "\u00f0",
         "realized": "\u00f0",
-        "p_heard_realized": 0.7035,
+        "p_heard_realized": 0.6774,
         "correct_report": true
       },
       {
-        "utterance_id": "so762-055470104",
-        "audio_path": "data/speechocean762/WAVE/SPEAKER5547/055470104.WAV",
+        "utterance_id": "so762-003060107",
+        "audio_path": "data/speechocean762/WAVE/SPEAKER0306/003060107.WAV",
         "start_s": null,
         "end_s": null,
         "l1": "mandarin",
         "heard": "\u00f0",
         "realized": "\u00f0",
-        "p_heard_realized": 0.6497,
+        "p_heard_realized": 0.6704,
         "correct_report": true
       },
       {
-        "utterance_id": "so762-096260011",
-        "audio_path": "data/speechocean762/WAVE/SPEAKER9626/096260011.WAV",
+        "utterance_id": "so762-010750011",
+        "audio_path": "data/speechocean762/WAVE/SPEAKER1075/010750011.WAV",
         "start_s": null,
         "end_s": null,
         "l1": "mandarin",
         "heard": "\u00f0",
         "realized": "\u00f0",
-        "p_heard_realized": 0.7,
+        "p_heard_realized": 0.6547,
         "correct_report": true
       },
       {
-        "utterance_id": "so762-024380204",
-        "audio_path": "data/speechocean762/WAVE/SPEAKER2438/024380204.WAV",
+        "utterance_id": "so762-020300121",
+        "audio_path": "data/speechocean762/WAVE/SPEAKER2030/020300121.WAV",
         "start_s": null,
         "end_s": null,
         "l1": "mandarin",
         "heard": "\u00f0",
         "realized": "\u00f0",
-        "p_heard_realized": 0.6334,
+        "p_heard_realized": 0.6931,
         "correct_report": true
       }
     ]
@@ -1155,8 +1149,8 @@
     "mean_ok_confidence": 0.9001
   },
   "latency": {
-    "cold_ms": 3003.5,
-    "median_warm_ms": 25.8
+    "cold_ms": 4126.7,
+    "median_warm_ms": 26.2
   },
   "download_bytes": 0,
   "flagged_sample": [

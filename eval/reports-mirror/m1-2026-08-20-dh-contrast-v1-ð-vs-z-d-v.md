@@ -8,71 +8,70 @@
 ## Mirror - what the ear heard (shipped line)
 
 - Platt: p = sigmoid(0.275 * hearing_score + -0.052)  [P(heard == realized)]
-- threshold: 0.6
-- cal: accuracy 0.7035 / coverage 0.2431 (cal status SHIPPING BAR NOT MET)
-- **held-out: accuracy 0.7802 / coverage 0.3407** / answer-rate 0.3411
+- threshold: 0.62
+- cal: accuracy 0.7037 / coverage 0.1867 (cal status SHIPPING BAR NOT MET)
+- **held-out: accuracy 0.7904 / coverage 0.2697** / answer-rate 0.27
 - raw top-1 hearing accuracy (no gating): 0.6233
-- confident reports 821 of 2410 tokens (scored 2407; unscorable 2)
+- confident reports 650 of 2410 tokens (scored 2407; unscorable 1)
 
 ### realized x heard (confident reports)
 
 | realized \ heard | /d/ | /v/ | /z/ | /ð/ |
 |---|---|---|---|---|
-| /ð/ | 23 | 30 | 92 | 620 |
-| /d/ | 11 | 5 | 1 | 21 |
-| /s/ | 0 | 0 | 1 | 0 |
+| /ð/ | 12 | 22 | 79 | 498 |
+| /d/ | 8 | 5 | 1 | 11 |
 | /t/ | 1 | 0 | 0 | 0 |
-| /z/ | 0 | 0 | 8 | 0 |
-| /θ/ | 1 | 1 | 0 | 0 |
+| /z/ | 0 | 0 | 7 | 0 |
+| /θ/ | 0 | 1 | 0 | 0 |
 | deleted | 1 | 2 | 1 | 0 |
 
 ### Mirror per L1 (held-out)
 
 Fairness audit of the single shipped line: every group is heard at
-the same global operating point 0.6. Informational
+the same global operating point 0.62. Informational
 only - it never gates the bar.
 
 | l1 | tokens | confident | accuracy | coverage | fair |
 |---|---|---|---|---|---|
-| arabic | 150 | 59 | 0.8814 | 0.3933 | False |
-| hindi | 158 | 13 | 0.3846 | 0.0823 | False |
-| korean | 161 | 13 | 0.3846 | 0.0807 | False |
-| mandarin | 1640 | 684 | 0.8138 | 0.4171 | False |
-| spanish | 152 | 26 | 0.1923 | 0.1711 | False |
-| vietnamese | 149 | 26 | 0.6538 | 0.1745 | False |
+| arabic | 150 | 43 | 0.907 | 0.2867 | False |
+| hindi | 158 | 8 | 0.375 | 0.0506 | False |
+| korean | 161 | 10 | 0.4 | 0.0621 | False |
+| mandarin | 1640 | 559 | 0.819 | 0.3409 | False |
+| spanish | 152 | 15 | 0.2 | 0.0987 | False |
+| vietnamese | 149 | 15 | 0.4667 | 0.1007 | False |
 
 ### Mirror spot-check (confident reports, mishearings first)
 
-- [WRONG] l2arctic-ABA-arctic_a0003 heard /v/, realized /ð/ (p=0.6051) l1=arabic data/l2arctic/ABA/wav/arctic_a0003.wav
 - [WRONG] l2arctic-ABA-arctic_a0036 heard /v/, realized /ð/ (p=0.6217) l1=arabic data/l2arctic/ABA/wav/arctic_a0036.wav
-- [WRONG] l2arctic-ABA-arctic_a0078 heard /d/, realized /θ/ (p=0.608) l1=arabic data/l2arctic/ABA/wav/arctic_a0078.wav
-- [WRONG] l2arctic-ABA-arctic_a0117 heard /z/, realized /ð/ (p=0.7735) l1=arabic data/l2arctic/ABA/wav/arctic_a0117.wav
+- [WRONG] l2arctic-ABA-arctic_a0117 heard /z/, realized /ð/ (p=0.7736) l1=arabic data/l2arctic/ABA/wav/arctic_a0117.wav
 - [WRONG] l2arctic-ABA-arctic_a0137 heard /d/, realized /ð/ (p=0.6425) l1=arabic data/l2arctic/ABA/wav/arctic_a0137.wav
-- [WRONG] l2arctic-ABA-arctic_a0159 heard /z/, realized /s/ (p=0.6074) l1=arabic data/l2arctic/ABA/wav/arctic_a0159.wav
 - [WRONG] l2arctic-ABA-arctic_a0461 heard /v/, realized /ð/ (p=0.6273) l1=arabic data/l2arctic/ABA/wav/arctic_a0461.wav
-- [WRONG] l2arctic-ASI-arctic_a0031 heard /ð/, realized /d/ (p=0.6066) l1=hindi data/l2arctic/ASI/wav/arctic_a0031.wav
-- [WRONG] l2arctic-ASI-arctic_a0047 heard /v/, realized /d/ (p=0.6496) l1=hindi data/l2arctic/ASI/wav/arctic_a0047.wav
+- [WRONG] l2arctic-ASI-arctic_a0047 heard /v/, realized /d/ (p=0.6497) l1=hindi data/l2arctic/ASI/wav/arctic_a0047.wav
 - [WRONG] l2arctic-ASI-arctic_a0071 heard /z/, realized /d/ (p=0.6347) l1=hindi data/l2arctic/ASI/wav/arctic_a0071.wav
 - [WRONG] l2arctic-ASI-arctic_a0077 heard /z/, realized /ð/ (p=0.629) l1=hindi data/l2arctic/ASI/wav/arctic_a0077.wav
 - [WRONG] l2arctic-ASI-arctic_a0095 heard /z/, realized /ð/ (p=0.639) l1=hindi data/l2arctic/ASI/wav/arctic_a0095.wav
 - [WRONG] l2arctic-ASI-arctic_a0108 heard /v/, realized /ð/ (p=0.6909) l1=hindi data/l2arctic/ASI/wav/arctic_a0108.wav
-- [WRONG] l2arctic-ASI-arctic_b0136 heard /d/, realized /ð/ (p=0.6108) l1=hindi data/l2arctic/ASI/wav/arctic_b0136.wav
-- [WRONG] l2arctic-ASI-arctic_b0215 heard /d/, realized /ð/ (p=0.6127) l1=hindi data/l2arctic/ASI/wav/arctic_b0215.wav
-- [right] so762-007360299 heard /ð/, realized /ð/ (p=0.6413) l1=mandarin data/speechocean762/WAVE/SPEAKER0736/007360299.WAV
-- [right] so762-060670049 heard /ð/, realized /ð/ (p=0.6071) l1=mandarin data/speechocean762/WAVE/SPEAKER6067/060670049.WAV
-- [right] so762-030140144 heard /ð/, realized /ð/ (p=0.654) l1=mandarin data/speechocean762/WAVE/SPEAKER3014/030140144.WAV
-- [right] so762-020140059 heard /ð/, realized /ð/ (p=0.6131) l1=mandarin data/speechocean762/WAVE/SPEAKER2014/020140059.WAV
-- [right] so762-010500163 heard /ð/, realized /ð/ (p=0.6122) l1=mandarin data/speechocean762/WAVE/SPEAKER1050/010500163.WAV
-- [right] so762-096230007 heard /ð/, realized /ð/ (p=0.6299) l1=mandarin data/speechocean762/WAVE/SPEAKER9623/096230007.WAV
-- [right] so762-060990155 heard /ð/, realized /ð/ (p=0.6724) l1=mandarin data/speechocean762/WAVE/SPEAKER6099/060990155.WAV
-- [right] so762-004570283 heard /ð/, realized /ð/ (p=0.6161) l1=mandarin data/speechocean762/WAVE/SPEAKER0457/004570283.WAV
-- [right] so762-007650337 heard /ð/, realized /ð/ (p=0.7038) l1=mandarin data/speechocean762/WAVE/SPEAKER0765/007650337.WAV
-- [right] so762-003060229 heard /ð/, realized /ð/ (p=0.627) l1=mandarin data/speechocean762/WAVE/SPEAKER0306/003060229.WAV
-- [right] so762-096330020 heard /ð/, realized /ð/ (p=0.6795) l1=mandarin data/speechocean762/WAVE/SPEAKER9633/096330020.WAV
-- [right] so762-030270026 heard /ð/, realized /ð/ (p=0.7035) l1=mandarin data/speechocean762/WAVE/SPEAKER3027/030270026.WAV
-- [right] so762-055470104 heard /ð/, realized /ð/ (p=0.6497) l1=mandarin data/speechocean762/WAVE/SPEAKER5547/055470104.WAV
-- [right] so762-096260011 heard /ð/, realized /ð/ (p=0.7) l1=mandarin data/speechocean762/WAVE/SPEAKER9626/096260011.WAV
-- [right] so762-024380204 heard /ð/, realized /ð/ (p=0.6334) l1=mandarin data/speechocean762/WAVE/SPEAKER2438/024380204.WAV
+- [WRONG] l2arctic-BWC-arctic_a0081 heard /v/, realized /∅/ (p=0.6241) l1=mandarin data/l2arctic/BWC/wav/arctic_a0081.wav
+- [WRONG] l2arctic-BWC-arctic_a0139 heard /v/, realized /θ/ (p=0.6883) l1=mandarin data/l2arctic/BWC/wav/arctic_a0139.wav
+- [WRONG] l2arctic-BWC-arctic_a0575 heard /z/, realized /∅/ (p=0.7282) l1=mandarin data/l2arctic/BWC/wav/arctic_a0575.wav
+- [WRONG] l2arctic-BWC-arctic_b0400 heard /v/, realized /∅/ (p=0.6837) l1=mandarin data/l2arctic/BWC/wav/arctic_b0400.wav
+- [WRONG] l2arctic-ERMS-arctic_a0029 heard /v/, realized /d/ (p=0.6945) l1=spanish data/l2arctic/ERMS/wav/arctic_a0029.wav
+- [WRONG] l2arctic-ERMS-arctic_a0032 heard /ð/, realized /d/ (p=0.6319) l1=spanish data/l2arctic/ERMS/wav/arctic_a0032.wav
+- [right] so762-020300097 heard /ð/, realized /ð/ (p=0.6968) l1=mandarin data/speechocean762/WAVE/SPEAKER2030/020300097.WAV
+- [right] so762-020140004 heard /ð/, realized /ð/ (p=0.6772) l1=mandarin data/speechocean762/WAVE/SPEAKER2014/020140004.WAV
+- [right] so762-054280062 heard /ð/, realized /ð/ (p=0.6509) l1=mandarin data/speechocean762/WAVE/SPEAKER5428/054280062.WAV
+- [right] so762-007650192 heard /ð/, realized /ð/ (p=0.7226) l1=mandarin data/speechocean762/WAVE/SPEAKER0765/007650192.WAV
+- [right] so762-096330023 heard /ð/, realized /ð/ (p=0.6224) l1=mandarin data/speechocean762/WAVE/SPEAKER9633/096330023.WAV
+- [right] so762-003060107 heard /ð/, realized /ð/ (p=0.6699) l1=mandarin data/speechocean762/WAVE/SPEAKER0306/003060107.WAV
+- [right] so762-096230006 heard /ð/, realized /ð/ (p=0.6436) l1=mandarin data/speechocean762/WAVE/SPEAKER9623/096230006.WAV
+- [right] so762-014200076 heard /ð/, realized /ð/ (p=0.6225) l1=mandarin data/speechocean762/WAVE/SPEAKER1420/014200076.WAV
+- [right] so762-015020113 heard /ð/, realized /ð/ (p=0.6346) l1=mandarin data/speechocean762/WAVE/SPEAKER1502/015020113.WAV
+- [right] so762-024410322 heard /ð/, realized /ð/ (p=0.6447) l1=mandarin data/speechocean762/WAVE/SPEAKER2441/024410322.WAV
+- [right] so762-030750170 heard /ð/, realized /ð/ (p=0.6513) l1=mandarin data/speechocean762/WAVE/SPEAKER3075/030750170.WAV
+- [right] so762-096180008 heard /ð/, realized /ð/ (p=0.6774) l1=mandarin data/speechocean762/WAVE/SPEAKER9618/096180008.WAV
+- [right] so762-003060107 heard /ð/, realized /ð/ (p=0.6704) l1=mandarin data/speechocean762/WAVE/SPEAKER0306/003060107.WAV
+- [right] so762-010750011 heard /ð/, realized /ð/ (p=0.6547) l1=mandarin data/speechocean762/WAVE/SPEAKER1075/010750011.WAV
+- [right] so762-020300121 heard /ð/, realized /ð/ (p=0.6931) l1=mandarin data/speechocean762/WAVE/SPEAKER2030/020300121.WAV
 
 ## Judge variants (research archive - parked by the mirror pivot)
 
@@ -127,7 +126,7 @@ not.
 
 ## Latency
 
-- cold 3003.5 ms, median warm 25.8 ms
+- cold 4126.7 ms, median warm 26.2 ms
 - download size 0.00 GB
 
 ## Flagged items for human spot-check
