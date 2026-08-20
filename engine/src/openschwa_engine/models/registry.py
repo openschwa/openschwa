@@ -286,6 +286,22 @@ MANIFEST: Mapping[str, ModelSpec] = MappingProxyType(
             ),
             role="contrast",
         ),
+        "ear-xlsr-v1": ModelSpec(
+            id="ear-xlsr-v1",
+            repo_id="local",
+            revision="local",
+            phone_table="charsiu_en",
+            vocab_snapshot="ear-xlsr-v1.json",
+            download_bytes=0,
+            license="Apache-2.0 (XLS-R-300M base; head trained on CC-BY/CC0 transcript speech)",
+            note=(
+                "The ear (Phase 1 mirror): frozen XLS-R-300M + a CTC phone head over the "
+                "charsiu stressless-ARPABET inventory, trained on LibriSpeech train.100 "
+                "(CC-BY-4.0) transcripts. A full-vocabulary hearing model - it scores the "
+                "focus segment only (role=contrast); the charsiu aligner keeps aligning."
+            ),
+            role="contrast",
+        ),
     }
 )
 
