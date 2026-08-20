@@ -237,7 +237,29 @@ load. First pack: `en-dh-z` (/ð/ → /z/).
   ≥ 0.4**) is not met. Per policy no calibration was committed and no
   verdicts ship; the engine stays retry-only. Evidence: eval/reports-v4/.
   **Accept criterion NOT met — recorded, not waived.**
-- **M2 — intonation.** Contour overlay + DTW + nuclear tone
+
+  **Round two — the classification head + 10-dim DSP fusion, 10 controlled
+  iterations (v13–v23, one variable per run).** Switched to a 4-class
+  cross-entropy head over charsiu with dual mean+max pooling and ten
+  hand-designed DSP cues (sibilance prominence, burst contrast, voicing
+  continuity…), plus the expert-bracketed so762 errors (52 clean rows), mined
+  hard negatives (top-500 correct tokens the judge misreads, Mandarin-only
+  rounds), error-segment augmentation, and a label-smoothing sweep. Every
+  exam ran the accent-agnostic pooled bar on the same held-out pool. The
+  series plateaued at **AUC 0.83–0.90** (best: v22, Mandarin mining +
+  smoothing 0.03 + augmentation, AUC **0.902**), with **P ≈ 0.74 at recall
+  0.40** and ≤ 2% recall at precision 0.90 — the bar needs AUC ≈ 0.94. Two
+  walls, measured precisely: (1) expert-judged *correct* Mandarin /ð/ that
+  the acoustics genuinely render sibilant/stopped — the top of the score
+  range interleaves them with true errors, so no single accent-blind
+  threshold separates them; (2) compressed error confidence. A window-pad
+  experiment (0.10 → 0.05 s) ruled out coarticulation bleed as the cause.
+  **No run met the bar; no calibration was committed.** Per the agreed
+  10-iteration cap the line stops here, the engine stays retry-only, and the
+  next jump (if ever attempted) needs a stronger representation, not another
+  recipe: ~0.94 AUC, i.e. roughly double the remaining separation gap.
+  Evidence: eval/reports-v13/ … eval/reports-v23-final/. **Accept criterion
+  NOT met — recorded, not waived.**
   ("please." / "please?" / "please!"). Accept: ≥ 90% fall-vs-rise on a
   purpose-recorded ~100-utterance set; octave errors < 2% of voiced frames.
   ~~Plus the packaging spike~~ — **done early**: `just package` produces a
