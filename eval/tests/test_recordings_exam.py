@@ -94,6 +94,11 @@ def test_recorder_plan_and_save(tmp_path):
     recorder = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(recorder)
 
+    # regression: the CLI defaults must resolve inside eval/, not the repo root
+    assert recorder.DEFAULT_MANIFEST.is_file()
+    expected_audio = Path(__file__).resolve().parents[1] / "data" / "recordings"
+    assert recorder.DEFAULT_AUDIO_DIR == expected_audio
+
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     steps = recorder.plan(manifest, tmp_path)
     assert len(steps) == 136  # 68 items x 2 reps

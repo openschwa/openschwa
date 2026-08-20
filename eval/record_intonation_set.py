@@ -19,7 +19,9 @@ import sounddevice as sd
 
 SAMPLE_RATE = 16_000
 RECORD_S = 3.5
-DEFAULT_AUDIO_DIR = Path(__file__).resolve().parents[1] / "data" / "recordings"
+EVAL_DIR = Path(__file__).resolve().parent
+DEFAULT_MANIFEST = EVAL_DIR / "manifests" / "intonation-recordings.json"
+DEFAULT_AUDIO_DIR = EVAL_DIR / "data" / "recordings"
 
 
 def plan(manifest: dict, audio_dir: Path) -> list[tuple[dict, int, Path, bool]]:
@@ -97,11 +99,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--manifest",
-        default=str(
-            Path(__file__).resolve().parents[1]
-            / "manifests"
-            / "intonation-recordings.json"
-        ),
+        default=str(DEFAULT_MANIFEST),
         help="the item manifest JSON",
     )
     parser.add_argument("--audio", default=str(DEFAULT_AUDIO_DIR))
