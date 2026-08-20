@@ -65,6 +65,22 @@ def test_runner_scores_a_tone_recording_and_flags_missing(tmp_path):
     assert any(f["item_id"] == "fr-01b" for f in summary["flags_for_verification"])
 
 
+def test_runner_excludes_verified_drops(tmp_path):
+    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    manifest["reps"] = 1
+    manifest["items"] = manifest["items"][:2]
+    audio = tmp_path / "audio"
+    audio.mkdir()
+    _write_wav(audio / "fr-01a_1.wav")
+    _write_wav(audio / "fr-01b_1.wav")
+    records = run_recordings(manifest, audio, exclude={"fr-01b_1"})
+    assert records[0].status == "ok"
+    assert records[1].status == "excluded"
+    summary = evaluate_recordings(records)
+    assert summary["usable"] == 1  # excluded takes are never scored
+    assert summary["recordings"] == 2
+
+
 def test_evaluate_flags_mismatches_for_human_verification():
     records = [
         RecordingRecord("a", 1, "Please.", "fall", status="ok", detected="fall", confidence=1.0),

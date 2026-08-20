@@ -62,13 +62,28 @@ def _wav_for(path: Path) -> Path:
     return out
 
 
-def run_recordings(manifest: dict, audio_dir: Path) -> list[RecordingRecord]:
-    """Run the shipped prosody chain on every item x rep recording."""
+def run_recordings(
+    manifest: dict,
+    audio_dir: Path,
+    exclude: set[str] | None = None,
+) -> list[RecordingRecord]:
+    """Run the shipped prosody chain on every item x rep recording.
+
+    exclude holds "<id>_<rep>" keys the human verification pass dropped
+    (mis-spoken takes): they are recorded as excluded and never scored.
+    """
     settings = Settings(warm_model_on_start=False)
     records: list[RecordingRecord] = []
     reps = manifest.get("reps", 1)
     for item in manifest["items"]:
         for rep in range(1, reps + 1):
+            if exclude and f"{item['id']}_{rep}" in exclude:
+                records.append(
+                    RecordingRecord(
+                        item["id"], rep, item["text"], item["tone"], status="excluded"
+                    )
+                )
+                continue
             audio_path = next(audio_dir.glob(f"{item['id']}_{rep}.*"), None)
             if audio_path is None:
                 records.append(
