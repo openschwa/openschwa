@@ -28,7 +28,7 @@ from openschwa_eval.datasets import L2Arctic, PhoneToken, Utterance
 from openschwa_eval.harness import assign_split
 
 ALPHABET = ("ð", "z", "d", "v")
-PAD_S = 0.05  # coarticulation context on each side of the annotated interval
+PAD_S = 0.10  # coarticulation context on each side of the annotated interval
 
 
 class ExportError(RuntimeError):

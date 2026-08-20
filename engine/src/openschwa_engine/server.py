@@ -32,26 +32,42 @@ log = logging.getLogger(__name__)
 PORT_SCAN_RANGE = 20
 
 
-def _warm_model(registry: ModelRegistry, model_id: str) -> None:
-    """Load the acoustic model in the background, if it is already downloaded.
+def _warm_models(registry: ModelRegistry, settings: Settings) -> None:
+    """Load the acoustic models in the background, if they are already downloaded.
 
-    Reading 1.2 GB of weights takes tens of seconds, and lazily paying that on
-    the first recording is the worst possible moment — the learner has just
-    spoken and is waiting. Startup is unaffected: a request arriving mid-warmup
-    simply waits on the same lock instead of loading a second copy.
+    Reading 1.2 GB of weights takes seconds, and lazily paying that on the first
+    recording is the worst possible moment — the learner has just spoken and is
+    waiting. Startup is unaffected: a request arriving mid-warmup simply waits on
+    the same lock instead of loading a second copy.
     """
     from openschwa_engine.alignment import acoustic  # noqa: PLC0415 - lazy `ml` extra
 
     try:
-        spec = registry.spec(model_id)
+        spec = registry.spec(settings.alignment_model)
         acoustic.load(registry.require_ready(spec))
-        log.info("acoustic model %s ready", model_id)
+        log.info("acoustic alignment model %s ready", settings.alignment_model)
     except ModelError as exc:
-        # Expected when the engine is running without weights or without the
-        # `ml` extra — /v1/health already reports it, so one line will do.
         log.info("alignment disabled: %s", exc)
-    except Exception:  # a warmup failure must never stop the engine serving
-        log.warning("could not pre-load %s; it will load on first use", model_id, exc_info=True)
+    except Exception:
+        log.warning(
+            "could not pre-load %s; it will load on first use",
+            settings.alignment_model,
+            exc_info=True,
+        )
+
+    if settings.contrast_model_id:
+        try:
+            c_spec = registry.spec(settings.contrast_model_id)
+            acoustic.load(registry.require_ready(c_spec))
+            log.info("contrast judge model %s ready", settings.contrast_model_id)
+        except ModelError as exc:
+            log.info("contrast model disabled: %s", exc)
+        except Exception:
+            log.warning(
+                "could not pre-load %s; it will load on first use",
+                settings.contrast_model_id,
+                exc_info=True,
+            )
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -61,15 +77,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.library = load_library(settings.content_dir, settings.content_schema_path)
     app.state.registry = ModelRegistry(settings.model_dir)
 
-    if (
-        settings.warm_model_on_start
-        and ml_runtime_available()
-        and app.state.registry.is_ready(app.state.registry.spec(settings.alignment_model))
-    ):
+    if settings.warm_model_on_start and ml_runtime_available():
         threading.Thread(
-            target=_warm_model,
-            args=(app.state.registry, settings.alignment_model),
-            name="warm-model",
+            target=_warm_models,
+            args=(app.state.registry, settings),
+            name="warm-models",
             daemon=True,
         ).start()
 

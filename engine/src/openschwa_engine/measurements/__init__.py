@@ -7,3 +7,7 @@ than mis-measure them; formant medians (Burg) over vowel steady-state with a
 reliability score — formants are supporting evidence only, never the basis of
 a vowel verdict.
 """
+
+from openschwa_engine.measurements.features import extract_acoustic_features
+
+__all__ = ["extract_acoustic_features"]

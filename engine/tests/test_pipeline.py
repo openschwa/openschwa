@@ -110,9 +110,11 @@ def test_calibration_fitted_for_another_model_is_refused(tmp_path, monkeypatch):
 
 
 def test_matching_calibration_is_used(tmp_path, monkeypatch):
-    cal = foreign_calibration().model_copy(update={"model_id": "charsiu-en-w2v2-ctc"})
+    s = settings(tmp_path)
+    scoring_model = s.contrast_model_id or s.alignment_model
+    cal = foreign_calibration().model_copy(update={"model_id": scoring_model})
     monkeypatch.setattr(pipeline, "load_calibration", lambda: cal)
-    assert pipeline._matching_calibration(settings(tmp_path)) == cal
+    assert pipeline._matching_calibration(s) == cal
 
 
 def test_calibration_matches_the_contrast_model_when_configured(tmp_path, monkeypatch):

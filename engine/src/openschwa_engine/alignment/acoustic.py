@@ -37,12 +37,15 @@ class Posteriors:
 
 
 class AcousticModel:
-    """Wav2Vec2-style CTC phoneme model over 16 kHz mono float32."""
+    """Wav2Vec2-style CTC or Sequence Classification phoneme model over 16 kHz mono float32."""
 
     def __init__(self, model_dir: Path) -> None:
         try:
+            import json  # noqa: PLC0415
+
             import torch  # noqa: PLC0415 - lazy `ml` extra
             from transformers import (  # noqa: PLC0415 - lazy `ml` extra
+                AutoModelForAudioClassification,
                 Wav2Vec2FeatureExtractor,
                 Wav2Vec2ForCTC,
             )
@@ -64,14 +67,114 @@ class AcousticModel:
         self._cuda = torch.cuda.is_available()
         log.info("loading acoustic model from %s (cuda=%s)", model_dir, self._cuda)
         self._extractor = Wav2Vec2FeatureExtractor.from_pretrained(str(model_dir))
-        # Any: transformers' wrapped __call__ defeats the inferred type once
-        # .cuda() reassigns the module, and mypy then rejects the forward call.
-        self._model: Any = Wav2Vec2ForCTC.from_pretrained(str(model_dir))
+
+        config_path = model_dir / "config.json"
+        model_type = "ctc"
+        if config_path.is_file():
+            try:
+                config_data = json.loads(config_path.read_text(encoding="utf-8"))
+                architectures = config_data.get("architectures", [])
+                if "PhoneContrastClassifier" in architectures:
+                    model_type = "fusion"
+                elif any(
+                    "SequenceClassification" in a or "AudioClassification" in a
+                    for a in architectures
+                ):
+                    model_type = "seq"
+            except Exception:
+                pass
+
+        self._model_type = model_type
+        if model_type == "fusion":
+            from safetensors.torch import load_file
+            from torch import nn
+            from transformers import Wav2Vec2Config, Wav2Vec2Model
+
+            class _PhoneContrastClassifier(nn.Module):
+                def __init__(self, dir_path: Path, num_cls: int = 4, num_feat: int = 10) -> None:
+                    super().__init__()
+                    config = Wav2Vec2Config.from_pretrained(str(dir_path))
+                    num_feat = int(getattr(config, "num_features", num_feat))
+                    self.wav2vec2 = Wav2Vec2Model(config)
+                    self.num_classes = num_cls
+                    self.num_features = num_feat
+                    hidden_size = config.hidden_size
+                    self.fusion = nn.Sequential(
+                        nn.Linear(hidden_size * 2 + num_feat, 512),
+                        nn.LayerNorm(512),
+                        nn.GELU(),
+                        nn.Dropout(0.15),
+                        nn.Linear(512, 256),
+                        nn.GELU(),
+                        nn.Dropout(0.1),
+                        nn.Linear(256, num_cls),
+                    )
+                    self.config = config
+                    self.config.architectures = ["PhoneContrastClassifier"]
+                    self.config.num_labels = num_cls
+
+                def forward(
+                    self,
+                    input_values: torch.Tensor,
+                    attention_mask: torch.Tensor | None = None,
+                    features: torch.Tensor | None = None,
+                ) -> torch.Tensor:
+                    outputs = self.wav2vec2(input_values, attention_mask=attention_mask)
+                    hidden = outputs.last_hidden_state
+                    if attention_mask is not None:
+                        feat_lengths = self.wav2vec2._get_feat_extract_output_lengths(
+                            attention_mask.sum(dim=1).long()  # type: ignore[arg-type]
+                        )
+                        max_time = hidden.shape[1]
+                        frame_mask = (
+                            (
+                                torch.arange(max_time, device=hidden.device).unsqueeze(0)
+                                < feat_lengths.unsqueeze(1)
+                            )
+                            .float()
+                            .unsqueeze(-1)
+                        )
+                        mean_p = (hidden * frame_mask).sum(dim=1) / frame_mask.sum(dim=1).clamp(
+                            min=1.0
+                        )
+                        masked_h = hidden.clone()
+                        masked_h[frame_mask.squeeze(-1) == 0] = -1e9
+                        max_p, _ = masked_h.max(dim=1)
+                    else:
+                        mean_p = hidden.mean(dim=1)
+                        max_p, _ = hidden.max(dim=1)
+
+                    pooled = torch.cat([mean_p, max_p], dim=-1)
+                    if features is not None:
+                        fused = torch.cat([pooled, features], dim=-1)
+                    else:
+                        zero_feat = torch.zeros(
+                            pooled.shape[0], self.num_features, device=pooled.device
+                        )
+                        fused = torch.cat([pooled, zero_feat], dim=-1)
+                    return self.fusion(fused)
+
+            model = _PhoneContrastClassifier(model_dir)
+            safetensors_file = model_dir / "model.safetensors"
+            if safetensors_file.is_file():
+                model.load_state_dict(load_file(str(safetensors_file)))
+            elif (model_dir / "pytorch_model.bin").is_file():
+                model.load_state_dict(
+                    torch.load(
+                        model_dir / "pytorch_model.bin", map_location="cpu", weights_only=False
+                    )
+                )
+            self._model: Any = model
+        elif model_type == "seq":
+            self._model = AutoModelForAudioClassification.from_pretrained(str(model_dir))
+        else:
+            self._model = Wav2Vec2ForCTC.from_pretrained(str(model_dir))
         self._model.eval()
         if self._cuda:
-            # mypy misreads transformers' wrapped .cuda as a __call__.
-            self._model = self._model.cuda()  # type: ignore[call-arg]
-        self.vocab_size = int(self._model.config.vocab_size or 0)
+            self._model = self._model.cuda()
+        cfg = getattr(self._model, "config", None)
+        v_size = getattr(cfg, "vocab_size", None) or getattr(cfg, "num_labels", 0)
+        self.vocab_size = int(v_size or 0)
 
     def posteriors(self, samples_16k: npt.NDArray[np.float32]) -> Posteriors:
         if samples_16k.size == 0:
@@ -88,10 +191,33 @@ class AcousticModel:
             inputs["input_values"] = inputs["input_values"].cuda()
             inputs["attention_mask"] = inputs["attention_mask"].cuda()
         with torch.inference_mode():
-            logits = self._model(inputs.input_values, attention_mask=inputs.attention_mask).logits[
-                0
-            ]
-            log_probs = torch.log_softmax(logits.float(), dim=-1).cpu().numpy()
+            if self._model_type == "fusion":
+                from openschwa_engine.measurements.features import extract_acoustic_features
+
+                dsp_feat = extract_acoustic_features(samples_16k)
+                feat_tensor = torch.from_numpy(dsp_feat).float().unsqueeze(0)
+                if self._cuda:
+                    feat_tensor = feat_tensor.cuda()
+                logits = self._model(
+                    inputs.input_values,
+                    attention_mask=inputs.attention_mask,
+                    features=feat_tensor,
+                )[0]
+                if logits.ndim == 1:
+                    logits = logits.unsqueeze(0)
+                log_probs = torch.log_softmax(logits.float(), dim=-1).cpu().numpy()
+            elif self._model_type == "seq":
+                logits = self._model(
+                    inputs.input_values, attention_mask=inputs.attention_mask
+                ).logits[0]
+                if logits.ndim == 1:
+                    logits = logits.unsqueeze(0)
+                log_probs = torch.log_softmax(logits.float(), dim=-1).cpu().numpy()
+            else:
+                logits = self._model(
+                    inputs.input_values, attention_mask=inputs.attention_mask
+                ).logits[0]
+                log_probs = torch.log_softmax(logits.float(), dim=-1).cpu().numpy()
 
         frames = int(log_probs.shape[0])
         # Derive the hop from the actual frame count rather than assuming the

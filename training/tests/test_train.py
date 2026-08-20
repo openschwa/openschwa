@@ -29,7 +29,7 @@ def test_balanced_batches_carry_all_four_classes():
 
 
 def tiny_base(tmp_path: Path) -> Path:
-    from transformers import Wav2Vec2Config, Wav2Vec2ForCTC  # noqa: PLC0415
+    from transformers import Wav2Vec2Config, Wav2Vec2Model  # noqa: PLC0415
 
     config = Wav2Vec2Config(
         hidden_size=32,
@@ -42,10 +42,8 @@ def tiny_base(tmp_path: Path) -> Path:
         conv_stride=[2, 2],
         feat_extract_norm="layer",
         num_feat_extract_layers=2,
-        vocab_size=len(VOCAB),
-        pad_token_id=VOCAB["[PAD]"],
     )
-    model = Wav2Vec2ForCTC(config)
+    model = Wav2Vec2Model(config)
     base = tmp_path / "base"
     model.save_pretrained(str(base))
     (base / "preprocessor_config.json").write_text(

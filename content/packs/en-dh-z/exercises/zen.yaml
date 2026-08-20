@@ -7,7 +7,7 @@ ipa: "zɛn"
 phones:
   - ph: "z"
     focus: true
-    confusions: ["ð", "s"]
+    confusions: ["ð", "d", "v"]
   - ph: "ɛ"
   - ph: "n"
 pair_with: en.seg.dh-z.then

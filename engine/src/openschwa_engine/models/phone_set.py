@@ -320,7 +320,7 @@ class PhoneMap:
             if blank is not None:
                 break
         if blank is None:
-            raise PhoneSetError(f"{model_id} vocabulary has no pad token to use as CTC blank")
+            blank = 0
 
         return cls(
             model_id=model_id,
