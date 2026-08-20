@@ -356,18 +356,24 @@ def val_dh_slot_metrics(
 def balanced_batches(
     rows: list[dict[str, object]], batch_size: int, rng: random.Random
 ) -> list[list[dict[str, object]]]:
-    """Per-class balanced batches."""
+    """Per-class balanced batches.
+
+    Rounds-robin across the classes PRESENT in the pool: a dataset without
+    "other" rows (smoke fixtures, ablations) must not crash the sampler, and
+    the per-class count adapts so every present class gets equal share.
+    """
     by_class: dict[str, list[dict[str, object]]] = {}
     for row in rows:
         by_class.setdefault(str(row["label"]), []).append(row)
-    pools = {label: pool[:] for label, pool in by_class.items()}
+    active = [label for label in ALPHABET if by_class.get(label)]
+    pools = {label: by_class.get(label, [])[:] for label in active}
     for pool in pools.values():
         rng.shuffle(pool)
-    per_class = max(1, batch_size // len(ALPHABET))
+    per_class = max(1, batch_size // max(1, len(active)))
     batches: list[list[dict[str, object]]] = []
     for _ in range((len(rows) + batch_size - 1) // batch_size):
         batch: list[dict[str, object]] = []
-        for label in ALPHABET:
+        for label in active:
             pool = pools[label]
             if len(pool) < per_class:  # refill with replacement
                 pool.extend(by_class[label])
