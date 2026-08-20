@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import io
 import json
 import logging
 import wave
@@ -187,21 +188,42 @@ def prep(
 
 
 def _stream(source: str) -> object:
-    """The streaming dataset for a source, audio cast to 16 kHz mono."""
+    """The streaming dataset for a source, audio kept as raw bytes.
+
+    datasets 3.x decodes audio through torchcodec, which has no wheels for
+    the pinned torch 2.5.1 - so rows carry encoded bytes and _decode_audio
+    does the decoding with PyAV (bundled FFmpeg: FLAC for LibriSpeech, Opus
+    for VoxPopuli).
+    """
     from datasets import Audio, load_dataset  # noqa: PLC0415 - the ear env only
 
     if source == "librispeech":
         return load_dataset(
             "openslr/librispeech_asr", "clean", split="train.100", streaming=True
-        ).cast_column("audio", Audio(sampling_rate=16_000))
+        ).cast_column("audio", Audio(decode=False))
     if source == "voxpopuli":
         return load_dataset("facebook/voxpopuli", "en", split="train", streaming=True).cast_column(
-            "audio", Audio(sampling_rate=16_000)
+            "audio", Audio(decode=False)
         )
     raise ValueError(
         f"unknown source {source!r} - available: librispeech, voxpopuli "
         "(Common Voice left HF in Oct 2025 for Mozilla Data Collective)"
     )
+
+
+def _decode_audio(audio: dict[str, object]) -> tuple[np.ndarray, int]:
+    """Encoded audio bytes -> (float32 mono samples, sample rate) at 16 kHz."""
+    import av  # noqa: PLC0415 - the ear env only
+
+    container = av.open(io.BytesIO(bytes(audio["bytes"])))
+    resampler = av.AudioResampler(format="flt", layout="mono", rate=16_000)
+    chunks: list[np.ndarray] = []
+    for frame in container.decode(audio=0):
+        for resampled in resampler.resample(frame):
+            chunks.append(resampled.to_ndarray().reshape(-1))
+    if chunks:
+        return np.concatenate(chunks).astype(np.float32), 16_000
+    return np.zeros(0, dtype=np.float32), 16_000
 
 
 def _row_fields(source: str, row: dict[str, object]) -> tuple[str, str, str] | None:
@@ -259,8 +281,9 @@ def _prep_source(
         clip_id, client_id, sentence = fields
         if clip_id in done_ids:
             continue
-        audio = row["audio"]["array"]
-        sample_rate = int(row["audio"]["sampling_rate"])
+        audio, sample_rate = _decode_audio(row["audio"])
+        if audio.size == 0:
+            continue
         duration = len(audio) / sample_rate
         if not min_duration_s <= duration <= max_duration_s:
             continue

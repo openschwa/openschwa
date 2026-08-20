@@ -19,10 +19,13 @@ ml = [
     # so it is pinned in lockstep (silero-vad pulls it in).
     "torch==2.5.1",
     "torchaudio==2.5.1",
-    # The ear pipeline (Phase 1): Common Voice streaming + g2p_en phonemizer
-    # (CMU dictionary + rules, MIT). Data-prep only; nothing ships from them.
+    # The ear pipeline (Phase 1): transcript speech streaming + g2p_en
+    # phonemizer (CMU dictionary + rules, MIT) + PyAV for FLAC/Opus decoding
+    # (datasets 3.x would need torchcodec, which has no torch 2.5.1 wheels).
+    # Data-prep only; nothing ships from them.
     "datasets>=2.19",
     "g2p-en>=2.1",
+    "av>=12",
 ]
 
 [dependency-groups]
