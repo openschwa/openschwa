@@ -31,7 +31,6 @@ import logging
 import math
 import shutil
 import wave
-from contextlib import nullcontext
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -202,8 +201,11 @@ def _flush_batch(
         mask[position, : samples.size] = 1
     padded = padded.to(device)
     mask = mask.to(device)
-    autocast = torch.autocast(device, dtype=torch.bfloat16) if device == "cuda" else nullcontext()
-    with torch.inference_mode(), autocast:
+    # fp32 on purpose: the bf16 forward explodes for a few clips (values far
+    # past fp16 range), and even clamped, those frames become 65504 outliers
+    # that pollute the head's training. fp32 costs ~2x here and removes the
+    # whole failure class.
+    with torch.inference_mode():
         hidden = encoder(padded, attention_mask=mask).last_hidden_state  # [B, T, 1024]
     valid = [int(encoder._get_feat_extract_output_lengths(p["samples"].size)) for p in pending]
     for position, entry in enumerate(pending):
