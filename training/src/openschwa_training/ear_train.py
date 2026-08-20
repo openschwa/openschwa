@@ -207,7 +207,11 @@ def _flush_batch(
         hidden = encoder(padded, attention_mask=mask).last_hidden_state  # [B, T, 1024]
     valid = [int(encoder._get_feat_extract_output_lengths(p["samples"].size)) for p in pending]
     for position, entry in enumerate(pending):
-        feat = hidden[position, : valid[position]].float().cpu().numpy().astype(np.float16)
+        feat = hidden[position, : valid[position]].float().cpu().numpy()
+        # bf16 encoder output can exceed fp16's range (65504); casting those
+        # values to float16 silently yields inf, the head trains on garbage,
+        # and the loss plateaus at the random-prediction level. Clamp first.
+        feat = np.clip(feat, -65_504.0, 65_504.0).astype(np.float16)
         flat.append(feat)
         shard.append(
             {
