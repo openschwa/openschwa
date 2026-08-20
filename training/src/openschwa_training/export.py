@@ -116,8 +116,10 @@ def export(options: ExportOptions) -> dict[str, object]:
     # annotators never realized /ð/ as /v/.
     for target in ALPHABET:
         for utterance in adapter.utterances(target):
-            if assign_split(utterance, options.split_seed) == "test":
-                continue  # the exam: never exported, never trained on
+            # Only the harness's TRAIN split is exported: the calibration
+            # pool feeds the threshold fit and the test pool is the exam.
+            if assign_split(utterance, options.split_seed) != "train":
+                continue
             is_val = _utterance_is_val(utterance, options.split_seed, options.val_fraction)
             decoded = None
             for token in utterance.tokens(target):

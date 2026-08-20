@@ -85,6 +85,14 @@ def main() -> None:
     )
     parser.add_argument("--out", default="reports/")
     parser.add_argument(
+        "--include-train-pool",
+        action="store_true",
+        help=(
+            "also run the train pool through the engine (diagnostics only - "
+            "the harness never fits on it)"
+        ),
+    )
+    parser.add_argument(
         "--commit",
         action="store_true",
         help=(
@@ -141,6 +149,7 @@ def main() -> None:
             # the winner re-run below may commit, and only with --commit.
             commit_calibration=False,
             run_tag=run_tag,
+            include_train_pool=args.include_train_pool,
         )
         summaries.append(summary)
 
@@ -185,6 +194,7 @@ def main() -> None:
             settings=settings,
             commit_calibration=True,
             run_tag=winner["run_tag"],
+            include_train_pool=args.include_train_pool,
         )
         log.info("committed calibration for %s", winner["model_id"])
     elif winner is not None:

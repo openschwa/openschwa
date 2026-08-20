@@ -1,14 +1,18 @@
 """Harness metrics and calibration maths, on synthetic records (no audio)."""
 
 import math
+from pathlib import Path
 
 import pytest
 
+from openschwa_eval.datasets import Utterance
+from openschwa_eval.datasets.l2arctic import SPEAKER_L1
 from openschwa_eval.harness import (
     TokenRecord,
     _final_status,
     _metrics,
     _per_l1_audit,
+    assign_split,
     build_calibration,
     fit_platt,
     pick_threshold,
@@ -142,6 +146,42 @@ def test_shipping_bar_unmet_is_reported():
 
 def _group(l1: str, scores_labels: list[tuple[float | None, str]]) -> list[TokenRecord]:
     return [record(score=s, label=label, l1=l1) for s, label in scores_labels]
+
+
+def _l2_utterance(speaker: str, l1: str) -> Utterance:
+    return Utterance(
+        utterance_id=f"l2arctic-{speaker}-a0001",
+        audio_path=Path("x.wav"),
+        transcript="the",
+        l1=l1,
+        phones=(),
+        corpus="l2arctic",
+        speaker=speaker,
+    )
+
+
+def test_l2arctic_split_is_speaker_disjoint_and_l1_stratified():
+    """Every L1 keeps presence in every split; no speaker appears in two
+    splits; the assignment is deterministic. The old utterance-seeded split
+    let a speaker's voice leak from train into test - this property is the
+    fix."""
+    splits = {s: assign_split(_l2_utterance(s, l1), 42) for s, l1 in SPEAKER_L1.items()}
+    for l1 in {"arabic", "mandarin", "hindi", "korean", "spanish", "vietnamese"}:
+        roles = {splits[s] for s in SPEAKER_L1 if SPEAKER_L1[s] == l1}
+        assert roles == {"train", "cal", "test"}, f"{l1}: {roles}"
+    again = {s: assign_split(_l2_utterance(s, l1), 42) for s, l1 in SPEAKER_L1.items()}
+    assert again == splits
+
+
+def test_so762_native_test_is_immutable_and_train_is_carved():
+    held_out = Utterance("so762-x", Path("x"), "the", "mandarin", (), split="test", corpus="so762")
+    for seed in (42, 7, 123):
+        assert assign_split(held_out, seed) == "test"
+    native_train = Utterance(
+        "so762-y", Path("x"), "the", "mandarin", (), split="train", corpus="so762"
+    )
+    for seed in (42, 7, 123):
+        assert assign_split(native_train, seed) in ("cal", "train")
 
 
 def test_per_l1_audit_scores_every_group_at_the_global_point():

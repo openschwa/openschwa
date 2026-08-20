@@ -142,6 +142,7 @@ class L2Arctic(DatasetAdapter):
             l1=l1,
             phones=tuple(tokens),
             corpus="l2arctic",
+            speaker=speaker,
         )
 
     @staticmethod

@@ -37,6 +37,9 @@ class Utterance:
     phones: tuple[PhoneToken, ...]
     split: str = ""  # corpus-native train/test split when one exists (speechocean762)
     corpus: str = ""  # adapter name, for the per-corpus breakdown
+    #: Speaker id, when the corpus exposes it. The three-way split is
+    #: speaker-disjoint: a speaker's voice must never leak across train/cal/test.
+    speaker: str = ""
 
     def tokens(self, target_phone: str) -> Iterator[PhoneToken]:
         """Every occurrence of `target_phone` in the canonical sequence."""

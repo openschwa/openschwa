@@ -25,6 +25,7 @@ from openschwa_engine.pipeline import analyze_recording
 from openschwa_engine.scoring import CALIBRATION_PATH
 
 from openschwa_eval.datasets import DatasetAdapter, PhoneToken, Utterance
+from openschwa_eval.datasets.l2arctic import SPEAKER_L1
 
 log = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ L1_PRECISION_FLOOR = 0.8
 L1_MIN_POSITIVES = 5
 PRECISION_TARGET = 0.90
 RECALL_TARGET = 0.4  # the milestone's accept: precision >= 0.90 at recall >= 0.4
-#: Below this many train tokens the threshold sweep is not evidence of
+#: Below this many cal tokens the threshold sweep is not evidence of
 #: anything, and a calibration must never be committed from it.
 MIN_COMMIT_TRAIN = 200
 
@@ -108,9 +109,35 @@ def exercise_for(utterance: Utterance, focus_index: int, confusions: list[str]) 
 
 
 def assign_split(utterance: Utterance, seed: int) -> str:
-    """Corpus-native split when the adapter has one, else a stable seeded one."""
-    if utterance.split:
-        return utterance.split
+    """Three-way split: train / cal / test. The single source of truth.
+
+    so762 keeps its native test partition as the exam's held-out pool; its
+    native train partition is carved into cal (25%, seeded) and train.
+
+    L2-ARCTIC is speaker-disjoint and L1-stratified: per first language the
+    speakers are deterministically shuffled and assigned test / cal / train /
+    train, so every L1 keeps presence in every split and no speaker's voice
+    leaks across splits (the old utterance-seeded 30% split let a speaker's
+    own voice leak from train into test - a quiet overstatement of every
+    held-out number to date).
+
+    Calibration (Platt fit, the threshold sweep, the variant bake-off) uses
+    ONLY the cal pool; test is scored once at the chosen operating point.
+    The exporters import this function, so the train pool they may export is
+    by construction disjoint from both.
+    """
+    if utterance.corpus == "so762":
+        if utterance.split == "test":
+            return "test"  # the native test partition is immutable
+        rng = random.Random(f"{seed}:so762-cal:{utterance.utterance_id}")
+        return "cal" if rng.random() < 0.25 else "train"
+    if utterance.speaker and utterance.l1:
+        speakers = sorted(name for name, lang in SPEAKER_L1.items() if lang == utterance.l1)
+        rng = random.Random(f"{seed}:l1:{utterance.l1}")
+        rng.shuffle(speakers)
+        roles = ("test", "cal") + ("train",) * max(0, len(speakers) - 2)
+        if utterance.speaker in speakers:
+            return roles[speakers.index(utterance.speaker)]
     rng = random.Random(f"{seed}:{utterance.utterance_id}")
     return "test" if rng.random() < 0.30 else "train"
 
@@ -133,6 +160,7 @@ def collect_tokens(
                 phones=utterance.phones,
                 split=assign_split(utterance, seed),
                 corpus=utterance.corpus,
+                speaker=utterance.speaker,
             )
             for token in utterance.tokens(target):
                 triples.append((utterance, token, exercise_for(utterance, token.index, confusions)))
@@ -328,6 +356,7 @@ def _final_status(v_status: str, test_metrics: dict[str, object]) -> str:
     if test_metrics["precision"] >= PRECISION_TARGET and test_metrics["recall"] >= RECALL_TARGET:
         return "ok"
     return "pooled-bar-not-met"
+
 
 def _metrics(
     records: list[TokenRecord], a: float, b: float, threshold: float, variant: str = "mean"
@@ -560,8 +589,13 @@ def evaluate_model(
     settings: Settings,
     commit_calibration: bool,
     run_tag: str,
+    include_train_pool: bool = False,
 ) -> dict[str, object]:
-    """One full pass: run, fit on train, measure on held-out, report.
+    """One full pass: run, fit on the cal pool, measure on held-out, report.
+
+    The train pool is the exporters' domain (the model saw it); the harness
+    never fits on it. With include_train_pool=True the train pool is also run
+    through the engine for diagnostics - it changes nothing in the fit.
 
     With commit_calibration=True the fitted operating point is written to the
     engine's scoring/calibration.yaml - the only writer of that file besides
@@ -576,6 +610,11 @@ def evaluate_model(
         )
 
     triples = collect_tokens(adapters, target, confusions, seed)
+    if not include_train_pool:
+        # The train pool is the model's training data: running it through the
+        # engine would only re-measure memorization. Calibration uses cal,
+        # the verdict uses test.
+        triples = [t for t in triples if t[0].split != "train"]
     if limit is not None:
         seen: set[str] = set()
         kept = []
@@ -604,12 +643,13 @@ def evaluate_model(
     run = run_tokens(triples, registry, run_settings, target, checkpoint=checkpoint)
 
     train = [r for r in run.records if r.split == "train"]
+    cal = [r for r in run.records if r.split == "cal"]
     test = [r for r in run.records if r.split == "test"]
-    if not train or not test:
-        raise RuntimeError("a split is empty - too few tokens for evaluation")
+    if not cal or not test:
+        raise RuntimeError("the cal or test split is empty - too few tokens for evaluation")
 
-    scored_train = [r for r in train if r.score is not None]
-    gop_pairs = [(r.gop, r.positive) for r in scored_train if r.gop is not None]
+    scored_cal = [r for r in cal if r.score is not None]
+    gop_pairs = [(r.gop, r.positive) for r in scored_cal if r.gop is not None]
     gop_platt: tuple[float, float] | None = None
     if gop_pairs:
         gop_platt = fit_platt([g for g, _ in gop_pairs], [not p for _, p in gop_pairs])
@@ -620,13 +660,13 @@ def evaluate_model(
     # CTC peakiness washing substitutions out of the label-frame mean.
     variants: dict[str, object] = {}
     for variant in ("mean", "spike", "vote", "gop"):
-        values = [v for v in (_variant_value(r, variant) for r in scored_train) if v is not None]
-        labels = [r.positive for r in scored_train if _variant_value(r, variant) is not None]
+        values = [v for v in (_variant_value(r, variant) for r in scored_cal) if v is not None]
+        labels = [r.positive for r in scored_cal if _variant_value(r, variant) is not None]
         if not values:
             variants[variant] = {"status": "no-scores"}
             continue
         v_a, v_b = fit_platt(values, labels)
-        v_threshold, v_train_metrics, v_status = pick_threshold(train, v_a, v_b, variant)
+        v_threshold, v_cal_metrics, v_status = pick_threshold(cal, v_a, v_b, variant)
         # The accent-agnostic bar: ONE operating point for every learner. The
         # held-out pool is scored at it, and the per-L1 breakdown is computed
         # at that same point as a fairness audit (does the blind line treat
@@ -639,8 +679,8 @@ def evaluate_model(
             "platt": {"a": v_a, "b": v_b},
             "threshold": v_threshold,
             "status": v_status_final,
-            "global_train_status": v_status,
-            "train": v_train_metrics,
+            "global_cal_status": v_status,
+            "cal": v_cal_metrics,
             "test": v_test_metrics,
             "per_l1": v_per_l1,
             "auc": round(v_auc, 4) if not math.isnan(v_auc) else None,
@@ -664,15 +704,18 @@ def evaluate_model(
 
     a, b = best["platt"]["a"], best["platt"]["b"]  # type: ignore[index]
     threshold = best["threshold"]  # type: ignore[assignment]
-    train_metrics = best["train"]  # type: ignore[assignment]
+    cal_metrics = best["cal"]  # type: ignore[assignment]
     status = best["status"]  # type: ignore[assignment]
     test_metrics = best["test"]  # type: ignore[assignment]
     auc = best["auc"]
     per_l1 = best["per_l1"]  # type: ignore[assignment] - the fairness audit table
-    per_corpus = {
-        corpus: _metrics(records, a, b, threshold, best_variant)
-        for corpus, records in sorted(_group_by_corpus(test).items())
-    }
+    per_corpus = {}
+    for corpus, records in sorted(_group_by_corpus(test).items()):
+        per_corpus[corpus] = _metrics(records, a, b, threshold, best_variant)
+        corpus_auc = _auc(records, a, b, best_variant)
+        per_corpus[corpus]["auc"] = (
+            round(corpus_auc, 4) if corpus_auc is not None and not math.isnan(corpus_auc) else None
+        )
     warm_ms = [r.wall_ms for r in run.records if r.score is not None and r.wall_ms > 0]
 
     summary = {
@@ -681,14 +724,14 @@ def evaluate_model(
         "target": target,
         "confusions": confusions,
         "seed": seed,
-        "tokens": {"train": len(train), "test": len(test)},
+        "tokens": {"train": len(train), "cal": len(cal), "test": len(test)},
         "score_variant": best_variant,
         "variants": variants,
         "platt": best["platt"],
         "gop_platt": {"a": gop_platt[0], "b": gop_platt[1]} if gop_platt else None,
         "threshold": threshold,
         "status": status,
-        "train_metrics": train_metrics,
+        "cal_metrics": cal_metrics,
         "test_metrics": test_metrics,
         "test_auc": round(auc, 4) if auc is not None and not math.isnan(auc) else None,
         "per_l1": per_l1,
@@ -705,10 +748,10 @@ def evaluate_model(
     # A smoke run's handful of tokens can trivially pass the threshold sweep
     # (flag nothing, precision 1.0); committing that would ship a meaningless
     # calibration. The floor is deliberately conservative.
-    if commit_calibration and status == "ok" and len(train) < MIN_COMMIT_TRAIN:
+    if commit_calibration and status == "ok" and len(cal) < MIN_COMMIT_TRAIN:
         log.error(
-            "NOT committing calibration: %d train tokens is below the %d floor (smoke run?)",
-            len(train),
+            "NOT committing calibration: %d cal tokens is below the %d floor (smoke run?)",
+            len(cal),
             MIN_COMMIT_TRAIN,
         )
         commit_calibration = False
@@ -750,13 +793,14 @@ def render_report(summary: dict[str, object]) -> str:
         "",
         f"- model: {summary['model_id']}",
         f"- contrast: /{summary['target']}/ vs {summary['confusions']}",
-        f"- tokens: {summary['tokens']['train']} train / {summary['tokens']['test']} held-out",
+        f"- tokens: {summary['tokens'].get('train', 0)} train / "
+        f"{summary['tokens']['cal']} cal / {summary['tokens']['test']} held-out",
         f"- **status: {summary['status']}**",
         f"- **shipping variant: {summary['score_variant']}**",
         "",
         "## Score variants (same frames, three aggregations)",
         "",
-        "| variant | threshold | status | train P/R | held-out P/R | f1 | AUC |",
+        "| variant | threshold | status | cal P/R | held-out P/R | f1 | AUC |",
         "|---|---|---|---|---|---|---|",
     ]
     for variant, info in summary["variants"].items():
@@ -765,18 +809,20 @@ def render_report(summary: dict[str, object]) -> str:
             continue
         lines.append(
             f"| {variant} | {info['threshold']} | {info['status']} | "
-            f"{info['train']['precision']}/{info['train']['recall']} | "
+            f"{info['cal']['precision']}/{info['cal']['recall']} | "
             f"{info['test']['precision']}/{info['test']['recall']} | "
             f"{info['test']['f1']} | {info['auc']} |"
         )
     lines += [
         "",
-        "## Operating point (train split)",
+        "## Operating point (calibration split)",
         "",
         f"- Platt: p = sigmoid({summary['platt']['a']:.3f} * score + {summary['platt']['b']:.3f})",
         f"- threshold: {summary['threshold']}",
-        f"- train: precision {summary['train_metrics']['precision']}, "
-        f"recall {summary['train_metrics']['recall']}",
+        f"- cal: precision {summary['cal_metrics']['precision']}, "
+        f"recall {summary['cal_metrics']['recall']}",
+        f"- cal->test precision gap: "
+        f"{round(summary['cal_metrics']['precision'] - summary['test_metrics']['precision'], 4)}",
         "",
         "## Held-out",
         "",
@@ -807,13 +853,13 @@ def render_report(summary: dict[str, object]) -> str:
         "",
         "## Per corpus (held-out)",
         "",
-        "| corpus | tokens | positives | precision | recall | f1 |",
-        "|---|---|---|---|---|---|",
+        "| corpus | tokens | positives | precision | recall | f1 | AUC |",
+        "|---|---|---|---|---|---|---|---|",
     ]
     for corpus, m in summary["per_corpus"].items():
         lines.append(
             f"| {corpus} | {m['tokens']} | {m['positives']} | {m['precision']} | "
-            f"{m['recall']} | {m['f1']} |"
+            f"{m['recall']} | {m['f1']} | {m['auc']} |"
         )
     lines += [
         "",

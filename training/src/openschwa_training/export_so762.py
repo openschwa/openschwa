@@ -30,6 +30,7 @@ from openschwa_engine.config import Settings
 from openschwa_engine.content.loader import Exercise, PhoneSpec
 from openschwa_engine.models.registry import ModelRegistry
 from openschwa_eval.datasets import SpeechOcean762
+from openschwa_eval.harness import assign_split
 
 from openschwa_training.export import _utterance_is_val, _write_segment_wav
 
@@ -109,8 +110,10 @@ def export_so762(options: So762Options) -> dict[str, object]:
     skipped: dict[str, int] = {}
     rows: list[dict[str, object]] = []
     for utterance in adapter.utterances("ð"):
-        if utterance.split != "train":
-            continue  # the so762 test split is the exam's held-out pool
+        # Only the harness's TRAIN split is exported: the cal carve and the
+        # native test partition are the exam's fitting and held-out pools.
+        if assign_split(utterance, options.split_seed) != "train":
+            continue
         is_val = _utterance_is_val(utterance, options.split_seed, options.val_fraction)
         decoded = decode_wav(utterance.audio_path.read_bytes())
         prepared = prepare(decoded.samples, decoded.sample_rate)
