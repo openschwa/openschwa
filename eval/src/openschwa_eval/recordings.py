@@ -88,8 +88,11 @@ def run_recordings(manifest: dict, audio_dir: Path) -> list[RecordingRecord]:
                     )
                 )
                 continue
-            tone, confidence = nuclear_tone(f0)
-            frames = len(f0.semitones)
+            speech_end = (
+                prepared.speech_interval_s[1] if prepared.speech_interval_s else None
+            )
+            tone, confidence = nuclear_tone(f0, end_s=speech_end)
+            voiced = sum(1 for value in f0.semitones if value is not None)
             records.append(
                 RecordingRecord(
                     item_id=item["id"],
@@ -100,7 +103,7 @@ def run_recordings(manifest: dict, audio_dir: Path) -> list[RecordingRecord]:
                     detected=tone,
                     confidence=round(confidence, 3),
                     octave_error_rate=(
-                        round(f0.octave_error_frames / frames, 4) if frames else None
+                        round(f0.octave_error_frames / voiced, 4) if voiced else None
                     ),
                     duration_s=round(prepared.duration_s, 3),
                 )

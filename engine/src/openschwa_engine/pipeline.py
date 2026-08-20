@@ -330,13 +330,17 @@ def analyze_recording(
     f0 = track(audio.samples_16k, 16_000)
 
     def _schema_track(track: ProsodyF0Track) -> F0Track:
-        frames = len(track.semitones)
+        # The octave-error rate is over *voiced* frames: silence frames in
+        # the denominator would flatter the metric on quiet recordings.
+        voiced = sum(1 for value in track.semitones if value is not None)
         return F0Track(
             hop_s=track.hop_s,
             start_s=track.start_s,
             semitones=list(track.semitones),
             median_hz=track.median_hz,
-            octave_error_rate=(round(track.octave_error_frames / frames, 4) if frames else None),
+            octave_error_rate=(
+                round(track.octave_error_frames / voiced, 4) if voiced else None
+            ),
         )
 
     reference = reference_track(exercise)
@@ -350,7 +354,11 @@ def analyze_recording(
     )
     if prosody is not None:
         assert f0 is not None  # prosody exists only when the track does
-        detected, confidence = nuclear_tone(f0)
+        # The tone lives at the end of speech, not at the end of the file:
+        # trailing silence after the learner stops speaking must not be read
+        # as the terminal contour.
+        speech_end = audio.speech_interval_s[1] if audio.speech_interval_s else None
+        detected, confidence = nuclear_tone(f0, end_s=speech_end)
         expected = exercise.prosody.expected_tone if exercise.prosody is not None else None
         prosody.nuclear_tone = NuclearTone(
             detected=detected,  # type: ignore[arg-type]

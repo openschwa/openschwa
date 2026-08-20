@@ -21,15 +21,17 @@ SLOPE_THRESHOLD_ST_S = 8.0
 Tone = str  # fall | rise | fall_rise | level
 
 
-def _voiced_series(track: F0Track, start_s: float = 0.0) -> tuple[np.ndarray, np.ndarray]:
-    """(times, semitones) of voiced frames at or after start_s."""
+def _voiced_series(
+    track: F0Track, start_s: float = 0.0, end_s: float | None = None
+) -> tuple[np.ndarray, np.ndarray]:
+    """(times, semitones) of voiced frames in [start_s, end_s]."""
     times: list[float] = []
     values: list[float] = []
     for index, value in enumerate(track.semitones):
         if value is None:
             continue
         t = track.start_s + index * track.hop_s
-        if t >= start_s - 1e-6:
+        if t >= start_s - 1e-6 and (end_s is None or t <= end_s + 1e-6):
             times.append(t)
             values.append(value)
     return np.asarray(times, dtype=np.float64), np.asarray(values, dtype=np.float64)
@@ -47,7 +49,7 @@ def _slope(times: np.ndarray, values: np.ndarray) -> float | None:
 
 
 def nuclear_tone(
-    track: F0Track, terminal_s: float = TERMINAL_S
+    track: F0Track, terminal_s: float = TERMINAL_S, end_s: float | None = None
 ) -> tuple[Tone, float]:
     """(tone, confidence) from the terminal voiced movement.
 
@@ -56,10 +58,29 @@ def nuclear_tone(
     (first half falling, second half rising) is a fall-rise. Confidence is
     the slope's margin over the threshold, clamped to [0, 1]; unmeasurable
     contours report level with zero confidence.
+
+    end_s (when given) ends the terminal window at the end of *speech*
+    instead of the end of the track - recordings with trailing silence
+    must not have the tone read from that silence.
     """
     duration = track.start_s + (len(track.semitones) - 1) * track.hop_s
-    window_start = max(0.0, duration - terminal_s)
-    times, values = _voiced_series(track, window_start)
+    end = min(duration, end_s) if end_s is not None else duration
+    # The window ends at the last *voiced* frame at or before end: weak
+    # final consonants (the /z/ of "please") leave an unvoiced tail after
+    # the glide that would otherwise swallow the terminal window.
+    last_voiced = None
+    for index, value in enumerate(track.semitones):
+        if value is None:
+            continue
+        t = track.start_s + index * track.hop_s
+        if t <= end + 1e-6:
+            last_voiced = t
+        else:
+            break
+    if last_voiced is not None:
+        end = min(end, last_voiced)
+    window_start = max(0.0, end - terminal_s)
+    times, values = _voiced_series(track, window_start, end)
     slope = _slope(times, values)
     if slope is None or values.size < 3:
         return "level", 0.0
