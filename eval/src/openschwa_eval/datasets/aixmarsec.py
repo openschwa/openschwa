@@ -24,21 +24,59 @@ from openschwa_eval import textgrid
 #: SAMPA -> canonical IPA for the MARSEC phoneme tier. Only the phones the
 #: alignment/contrast machinery may see are mapped; anything else is loud.
 SAMPA_TO_CANONICAL = {
-    "p": "p", "b": "b", "t": "t", "d": "d", "k": "k", "g": "ɡ",
-    "tS": "tʃ", "dZ": "dʒ", "f": "f", "v": "v", "T": "θ", "D": "ð",
-    "s": "s", "z": "z", "S": "ʃ", "Z": "ʒ", "h": "h", "m": "m", "n": "n",
-    "N": "ŋ", "l": "l", "r": "ɹ", "w": "w", "j": "j",
-    "i:": "i", "I": "ɪ", "e": "ɛ", "{": "æ", "A:": "ɑ", "Q": "ɔ",
-    "O:": "ɔ", "U": "ʊ", "u:": "u", "3:": "ɝ", "@": "ə", "V": "ʌ",
-    "eI": "eɪ", "aI": "aɪ", "OI": "ɔɪ", "@U": "oʊ", "aU": "aʊ",
-    "I@": "ɪ", "e@": "ɛ", "U@": "ʊ", "i": "i", "u": "u",
+    "p": "p",
+    "b": "b",
+    "t": "t",
+    "d": "d",
+    "k": "k",
+    "g": "ɡ",
+    "tS": "tʃ",
+    "dZ": "dʒ",
+    "f": "f",
+    "v": "v",
+    "T": "θ",
+    "D": "ð",
+    "s": "s",
+    "z": "z",
+    "S": "ʃ",
+    "Z": "ʒ",
+    "h": "h",
+    "m": "m",
+    "n": "n",
+    "N": "ŋ",
+    "l": "l",
+    "r": "ɹ",
+    "w": "w",
+    "j": "j",
+    "i:": "i",
+    "I": "ɪ",
+    "e": "ɛ",
+    "{": "æ",
+    "A:": "ɑ",
+    "Q": "ɔ",
+    "O:": "ɔ",
+    "U": "ʊ",
+    "u:": "u",
+    "3:": "ɝ",
+    "@": "ə",
+    "V": "ʌ",
+    "eI": "eɪ",
+    "aI": "aɪ",
+    "OI": "ɔɪ",
+    "@U": "oʊ",
+    "aU": "aʊ",
+    "I@": "ɪ",
+    "e@": "ɛ",
+    "U@": "ʊ",
+    "i": "i",
+    "u": "u",
 }
 #: Silence / structural labels on the phoneme tier (never mapped to phones).
-STRUCTURAL_LABELS = frozenset({'_', '#', '{', 'END', '', '?', '!'})
+STRUCTURAL_LABELS = frozenset({"_", "#", "{", "END", "", "?", "!"})
 #: SEC tonetic stress marks we use as ground truth. The M2 bar covers
 #: fall vs rise; the rest are parsed and reported, not gated.
-TSM_TONES = {'\\': 'fall', '/': 'rise', '`/': 'fall_rise', '=': 'level'}
-TSM_PREFIXES = ('\\', '/', '`/', '=')
+TSM_TONES = {"\\": "fall", "/": "rise", "`/": "fall_rise", "=": "level"}
+TSM_PREFIXES = ("\\", "/", "`/", "=")
 BLOCK_PAD_S = 0.05  # silence margin when slicing a passage out of its block
 
 
@@ -56,18 +94,19 @@ class IntonationUnit:
     end_s: float
     expected_tone: str  # fall | rise | fall_rise | level
     transcript: str
+    phones: tuple[str, ...] = ()  # canonical IPA, from the Phonemes tier
 
 
 def _parse_short_textgrid(text: str) -> list[textgrid.Tier]:
     """Parse an "ooTextFile short" TextGrid into IntervalTiers + PointTiers."""
     lines = [line.strip() for line in text.splitlines()]
-    if not lines or 'ooTextFile short' not in lines[0]:
-        raise textgrid.TextGridError('not a short-format TextGrid')
+    if not lines or "ooTextFile short" not in lines[0]:
+        raise textgrid.TextGridError("not a short-format TextGrid")
     compact = [line for line in lines if line]
     try:
-        header = compact.index('<exists>')
+        header = compact.index("<exists>")
     except ValueError as exc:
-        raise textgrid.TextGridError('no <exists> marker') from exc
+        raise textgrid.TextGridError("no <exists> marker") from exc
     n_tiers = int(compact[header + 1])
     index = header + 2
     tiers: list[textgrid.Tier] = []
@@ -82,7 +121,7 @@ def _parse_short_textgrid(text: str) -> list[textgrid.Tier]:
         count = int(compact[index + 2])
         index += 3
         intervals: list[textgrid.Interval] = []
-        if kind == 'IntervalTier':
+        if kind == "IntervalTier":
             for _ in range(count):
                 a = float(compact[index])
                 b = float(compact[index + 1])
@@ -90,7 +129,7 @@ def _parse_short_textgrid(text: str) -> list[textgrid.Tier]:
                 index += 3
                 intervals.append(textgrid.Interval(a, b, label))
             tiers.append(textgrid.Tier(name, tuple(intervals)))
-        elif kind == 'TextTier':
+        elif kind == "TextTier":
             points = []
             for _ in range(count):
                 t = float(compact[index])
@@ -99,7 +138,7 @@ def _parse_short_textgrid(text: str) -> list[textgrid.Tier]:
                 points.append((t, label))
             point_tiers.append((name, points))
         else:  # pragma: no cover - unknown tier kinds are loud, not silent
-            raise textgrid.TextGridError(f'unknown tier kind {kind!r} in {name!r}')
+            raise textgrid.TextGridError(f"unknown tier kind {kind!r} in {name!r}")
     return tiers
 
 
@@ -129,9 +168,7 @@ def refine_offsets(
     with wave.open(str(block_wav)) as handle:
         assert handle.getframerate() == 16_000, block_wav
         samples = (
-            np.frombuffer(handle.readframes(handle.getnframes()), dtype='<i2').astype(
-            np.float32
-            )
+            np.frombuffer(handle.readframes(handle.getnframes()), dtype="<i2").astype(np.float32)
             / 32768.0
         )
     sample_rate = 16_000
@@ -157,8 +194,28 @@ def refine_offsets(
     return offsets
 
 
+def _phones_in_span(phonemes_tier: textgrid.Tier, start_s: float, end_s: float) -> tuple[str, ...]:
+    """Canonical phones whose intervals overlap [start_s, end_s] (passage-local)."""
+    phones: list[str] = []
+    for interval in phonemes_tier.intervals:
+        if interval.xmax <= start_s or interval.xmin >= end_s:
+            continue
+        label = interval.text
+        if label in STRUCTURAL_LABELS:
+            continue
+        canonical = SAMPA_TO_CANONICAL.get(label)
+        if canonical is None:
+            continue  # unmappable SAMPA: skipped, counted by the corpus
+        phones.append(canonical)
+    return tuple(phones)
+
+
 def _units_from_text_tier(
-    text_tier: textgrid.Tier, offsets: dict[str, float], passage_id: str, block_id: str
+    text_tier: textgrid.Tier,
+    offsets: dict[str, float],
+    passage_id: str,
+    block_id: str,
+    phonemes_tier: textgrid.Tier | None = None,
 ) -> list[IntonationUnit]:
     """Intonation units: word stretches between SEC boundary markers.
 
@@ -173,11 +230,11 @@ def _units_from_text_tier(
         if not label:
             continue
         current.append(interval)
-        if re.search(r'[|#]', label) or label == 'END':
-            units.append(_finish_unit(current, passage_id, block_id, offsets))
+        if re.search(r"[|#]", label) or label == "END":
+            units.append(_finish_unit(current, passage_id, block_id, offsets, phonemes_tier))
             current = []
     if current:
-        units.append(_finish_unit(current, passage_id, block_id, offsets))
+        units.append(_finish_unit(current, passage_id, block_id, offsets, phonemes_tier))
     return [unit for unit in units if unit is not None]
 
 
@@ -186,6 +243,7 @@ def _finish_unit(
     passage_id: str,
     block_id: str,
     offsets: dict[str, float],
+    phonemes_tier: textgrid.Tier | None = None,
 ) -> IntonationUnit | None:
     offset = offsets.get(passage_id)
     if offset is None or not intervals:
@@ -195,17 +253,17 @@ def _finish_unit(
     for interval in intervals:
         label = interval.text
         # Onset markers (< low, > high) precede the tone mark on the nucleus.
-        while label[:1] in ('<', '>'):
+        while label[:1] in ("<", ">"):
             label = label[1:]
         for prefix in TSM_PREFIXES:
             if label.startswith(prefix):
                 tone = TSM_TONES[prefix]  # the last mark wins: that is the nucleus
-                label = label[len(prefix):]
+                label = label[len(prefix) :]
                 break
-        label = re.sub(r'[|#]', '', label).strip(', ').strip()
+        label = re.sub(r"[|#]", "", label).strip(", ").strip()
         if label:
             words.append(label)
-    if tone not in ('fall', 'rise', 'fall_rise'):
+    if tone not in ("fall", "rise", "fall_rise"):
         # '`' is NOT a tone (INTSINT cross-check: mixed movement); units
         # without a trustworthy mark are skipped. The bar gates fall vs rise.
         return None
@@ -221,9 +279,9 @@ def _finish_unit(
         start_s=round(offset + start, 4),
         end_s=round(offset + end, 4),
         expected_tone=tone,
-        transcript=' '.join(words),
+        transcript=" ".join(words),
+        phones=(_phones_in_span(phonemes_tier, start, end) if phonemes_tier is not None else ()),
     )
-
 
 
 class AixMarsec:
@@ -238,33 +296,33 @@ class AixMarsec:
         self._load_block_wavs()
 
     def _load_durations(self) -> None:
-        durations_file = next(self.root.rglob('file-durations.txt'), None)
+        durations_file = next(self.root.rglob("file-durations.txt"), None)
         if durations_file is None:
-            raise AixMarsecError(f'{self.root}: no file-durations.txt found')
-        for line in durations_file.read_text(encoding='utf-8').splitlines():
+            raise AixMarsecError(f"{self.root}: no file-durations.txt found")
+        for line in durations_file.read_text(encoding="utf-8").splitlines():
             line = line.strip()
             if not line:
                 continue
-            name, rest = line.split('\t', 1)
+            name, rest = line.split("\t", 1)
             duration = float(rest.split()[0])
-            passage = name[:-4] if name.endswith('.SIG') else name
+            passage = name[:-4] if name.endswith(".SIG") else name
             # The table has ONE entry per passage (B or G annotator variant);
             # offsets are keyed by the annotator-less passage code (stem[:5]).
             block = passage[:3]
             self._passages.setdefault(block, []).append((passage[:5], duration))
 
     def _load_block_wavs(self) -> None:
-        for wav in self.root.rglob('*.wav'):
+        for wav in self.root.rglob("*.wav"):
             self._block_wavs[wav.stem] = wav
 
     def units(self) -> list[IntonationUnit]:
         units: list[IntonationUnit] = []
-        textgrid_root = next(self.root.rglob('TextGrid'), None)
+        textgrid_root = next(self.root.rglob("TextGrid"), None)
         if textgrid_root is None or not textgrid_root.is_dir():
-            raise AixMarsecError(f'{self.root}: no TextGrid directory')
+            raise AixMarsecError(f"{self.root}: no TextGrid directory")
         offsets_cache: dict[str, dict[str, float]] = {}
         seen = 0
-        for tg_path in sorted(textgrid_root.glob('*/*.TextGrid')):
+        for tg_path in sorted(textgrid_root.glob("*/*.TextGrid")):
             passage_id = tg_path.stem
             passage_code = passage_id[:5]  # annotator-less: group+block+passage
             block_id = passage_id[:3]
@@ -279,13 +337,16 @@ class AixMarsec:
             if passage_code not in offsets:
                 continue  # truncated block tail
             try:
-                tiers = _parse_short_textgrid(tg_path.read_text(encoding='utf-8'))
+                tiers = _parse_short_textgrid(tg_path.read_text(encoding="utf-8"))
             except textgrid.TextGridError as exc:
-                raise AixMarsecError(f'{tg_path}: {exc}') from exc
-            text_tier = next((t for t in tiers if t.name == 'Text'), None)
+                raise AixMarsecError(f"{tg_path}: {exc}") from exc
+            text_tier = next((t for t in tiers if t.name == "Text"), None)
             if text_tier is None:
-                raise AixMarsecError(f'{tg_path}: no Text tier')
-            for unit in _units_from_text_tier(text_tier, offsets, passage_code, block_id):
+                raise AixMarsecError(f"{tg_path}: no Text tier")
+            phonemes_tier = next((t for t in tiers if t.name == "Phonèmes"), None)
+            for unit in _units_from_text_tier(
+                text_tier, offsets, passage_code, block_id, phonemes_tier
+            ):
                 unit = IntonationUnit(
                     passage_id=passage_id,
                     block_id=unit.block_id,
@@ -295,12 +356,12 @@ class AixMarsec:
                     end_s=unit.end_s,
                     expected_tone=unit.expected_tone,
                     transcript=unit.transcript,
+                    phones=unit.phones,
                 )
                 units.append(unit)
             seen += 1
             if self.max_passages is not None and seen >= self.max_passages:
                 return units
         if not units:
-            raise AixMarsecError(f'{self.root}: no intonation units extracted')
+            raise AixMarsecError(f"{self.root}: no intonation units extracted")
         return units
-

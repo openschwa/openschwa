@@ -14,7 +14,7 @@ CORPUS_ROOT = Path(__file__).resolve().parents[2] / "data" / "aix" / "4"
 def _write_tone_block(path: Path, passages: int, passage_s: float, gap_s: float) -> None:
     """A block wav: `passages` chunks of 200 Hz tone separated by silence."""
     sample_rate = 16_000
-    tone = (0.4 * np.sin(2 * np.pi * 200 * np.arange(int(passage_s * sample_rate)) / sample_rate))
+    tone = 0.4 * np.sin(2 * np.pi * 200 * np.arange(int(passage_s * sample_rate)) / sample_rate)
     silence = np.zeros(int(gap_s * sample_rate))
     parts = []
     for _ in range(passages):
@@ -51,7 +51,6 @@ def test_refine_offsets_drops_truncated_tail(tmp_path):
 
 
 @pytest.mark.skipif(not CORPUS_ROOT.is_dir(), reason="Aix-MARSEC corpus not present")
-
 def test_corpus_yields_fall_and_rise_units():
     corpus = AixMarsec(CORPUS_ROOT, max_passages=6)
     units = corpus.units()
