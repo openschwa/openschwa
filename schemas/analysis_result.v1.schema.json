@@ -394,6 +394,32 @@
           "title": "Confidence",
           "type": "number"
         },
+        "heard": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Argmax phone over {target} \u222a confusion_set.",
+          "title": "Heard"
+        },
+        "hearing_score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "log(p_heard / (1 - p_heard)), raw (uncalibrated).",
+          "title": "Hearing Score"
+        },
         "spike_score": {
           "anyOf": [
             {
@@ -501,7 +527,7 @@
           "type": "string"
         },
         "kind": {
-          "description": "Open enum, grows per milestone. Current: segmental_substitution, retry. Planned: nuclear_tone_mismatch (M2), vot_out_of_range (M3).",
+          "description": "Open enum, grows per milestone. Current: segmental_substitution, retry, phone_hearing (the M1 mirror: what the ear heard at the focus slot). Planned: nuclear_tone_mismatch (M2), vot_out_of_range (M3).",
           "title": "Kind",
           "type": "string"
         },

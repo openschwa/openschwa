@@ -13,7 +13,7 @@
     type ModelCatalog,
   } from './lib/api/client';
   import { MicRecorder, type Recording } from './lib/audio/capture';
-  import { substitutionAnchor } from './lib/feedback';
+  import { mirrorState, substitutionAnchor } from './lib/feedback';
   import FeedbackPanel from './lib/components/FeedbackPanel.svelte';
   import LevelMeter from './lib/components/LevelMeter.svelte';
   import Logo from './lib/components/Logo.svelte';
@@ -59,6 +59,11 @@
   // A substitution verdict anchors the error highlight to its phone; the
   // focus phone stays highlighted whenever no verdict is claiming the stage.
   const anchorIndex = $derived(substitutionAnchor(analysis?.feedback ?? []));
+  // The mirror (M1 pivot): the ear's report on the focus slot takes the
+  // stage whenever a phone_hearing item exists - green heard-as-intended,
+  // amber heard-other (the heard phone replaces the expected label), dim
+  // couldn't-tell.
+  const mirror = $derived(mirrorState(analysis?.feedback ?? []));
   const quality = $derived(analysis?.audio.quality ?? null);
   const lowLevel = $derived(
     quality?.speech_level_dbfs != null && quality.speech_level_dbfs < -40,
@@ -231,6 +236,10 @@
         durationS={captured?.durationS ?? 0}
         highlightIndex={focusPhone?.index ?? null}
         anchorIndex={anchorIndex}
+        mirrorIndex={mirror?.phoneIndex ?? null}
+        mirrorHeard={mirror?.heard ?? null}
+        mirrorOnTarget={mirror?.onTarget ?? false}
+        mirrorUnsure={mirror?.unsure ?? false}
       />
       <PitchContour
         prosody={analysis?.prosody ?? null}

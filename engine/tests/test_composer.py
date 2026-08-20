@@ -124,3 +124,96 @@ def test_evidence_points_at_the_contrast_position_not_the_item_position():
     items = compose(outcome(), contrasts, calibration=calibration())
     assert len(items) == 1
     assert items[0].evidence["contrast_index"] == 1
+
+
+# -- the mirror (phone_hearing) --------------------------------------------------
+
+
+def hearing_calibration() -> Calibration:
+    """A calibration carrying the mirror's hearing block: sigmoid identity,
+    threshold 0.85 - reporting needs P(heard == realized) >= 0.85."""
+    return Calibration(
+        schema_version="1.0",
+        generated_by="eval/reports/test.json",
+        model_id="synthetic",
+        contrasts=[
+            ContrastCalibration(
+                target="ð",
+                confusions=["z", "d", "v"],
+                substitution_platt=PlattCalibration(a=1.0, b=0.0),
+                threshold=0.85,
+                hearing_platt=PlattCalibration(a=1.0, b=0.0),
+                hearing_threshold=0.85,
+            )
+        ],
+        alignment=AlignmentCalibration(min_confidence=0.30, low_confidence=0.55),
+    )
+
+
+def hearing_contrast(heard: str, hearing_score: float) -> ContrastResult:
+    result = contrast("uncertain", confidence=0.5)
+    return result.model_copy(update={"heard": heard, "hearing_score": hearing_score})
+
+
+def test_mirror_reports_heard_other_above_threshold():
+    items = compose(
+        outcome(),
+        [hearing_contrast("z", 2.0)],  # P(heard==realized) ~ 0.88 >= 0.85
+        calibration=hearing_calibration(),
+    )
+    mirror = [item for item in items if item.kind == "phone_hearing"]
+    assert len(mirror) == 1
+    assert mirror[0].severity == "warning"
+    assert "/z/" in mirror[0].message and "/ð/" in mirror[0].message
+    assert mirror[0].message_key == "feedback.phone_hearing_other"
+    assert mirror[0].anchor is not None
+    assert mirror[0].anchor.phone_index == 0
+    assert mirror[0].evidence["contrast_index"] == 0
+
+
+def test_mirror_praises_heard_as_intended_above_threshold():
+    items = compose(
+        outcome(),
+        [hearing_contrast("ð", 2.0)],
+        calibration=hearing_calibration(),
+    )
+    mirror = [item for item in items if item.kind == "phone_hearing"]
+    assert len(mirror) == 1
+    assert mirror[0].severity == "praise"
+    assert mirror[0].message_key == "feedback.phone_hearing_on_target"
+    assert "right on target" in mirror[0].message
+
+
+def test_mirror_refuses_with_couldnt_tell_below_threshold():
+    """The honest refusal: a hearing claim below the calibrated gate becomes
+    'couldn't tell' - it ships even without include_ungated because it makes
+    no claim about the learner's pronunciation."""
+    items = compose(
+        outcome(),
+        [hearing_contrast("z", 0.0)],  # P ~ 0.5 < 0.85
+        calibration=hearing_calibration(),
+    )
+    mirror = [item for item in items if item.kind == "phone_hearing"]
+    assert len(mirror) == 1
+    assert mirror[0].message_key == "feedback.phone_hearing_unsure"
+    assert "couldn't tell" in mirror[0].message
+
+
+def test_mirror_stays_silent_without_a_hearing_block():
+    """A judge-only calibration (no hearing fit) produces no mirror items:
+    the mirror ships only after its own exam passes."""
+    items = compose(
+        outcome(),
+        [hearing_contrast("z", 2.0)],
+        calibration=calibration(),
+    )
+    assert [item.kind for item in items if item.kind == "phone_hearing"] == []
+
+
+def test_mirror_stays_silent_without_heard():
+    items = compose(
+        outcome(),
+        [contrast("uncertain", confidence=0.5)],  # heard=None
+        calibration=hearing_calibration(),
+    )
+    assert [item.kind for item in items if item.kind == "phone_hearing"] == []

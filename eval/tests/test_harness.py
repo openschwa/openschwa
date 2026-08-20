@@ -22,7 +22,15 @@ from openschwa_eval.harness import (
 
 
 def record(
-    score=None, label="correct", l1="arabic", corpus="l2arctic", split="test", wall_ms=10.0
+    score=None,
+    label="correct",
+    l1="arabic",
+    corpus="l2arctic",
+    split="test",
+    wall_ms=10.0,
+    heard=None,
+    hearing=None,
+    substituted_with=None,
 ) -> TokenRecord:
     return TokenRecord(
         utterance_id=f"u-{id(score)}-{label}",
@@ -31,7 +39,7 @@ def record(
         l1=l1,
         split=split,
         label=label,
-        substituted_with=None,
+        substituted_with=substituted_with,
         audio_path="x.wav",
         start_s=None,
         end_s=None,
@@ -42,6 +50,8 @@ def record(
         spike_score=score,
         vote_fraction=0.5 if score is not None else None,
         best_confusion="z" if score else None,
+        heard=heard,
+        hearing_score=hearing,
         gop=-0.5 if score is not None else None,
         verdict=None,
         confidence=None,
@@ -239,3 +249,129 @@ def test_build_calibration_matches_the_engine_model():
     assert contrast.gop_platt is not None
     # Accent-blind by construction: no per-language keys anywhere.
     assert "l1" not in content["contrasts"][0]
+
+
+# -- the mirror exam --------------------------------------------------------------
+
+
+def test_realized_of_maps_labels_to_realized_phones():
+    from openschwa_eval.harness import DELETED, realized_of
+
+    assert realized_of(record(label="correct"), "ð") == "ð"
+    assert realized_of(record(label="substituted", substituted_with="z"), "ð") == "z"
+    assert realized_of(record(label="deleted"), "ð") == DELETED
+    # An unknown realization (so762 substituted, adapter carries none) is
+    # never guessed.
+    assert realized_of(record(label="substituted", substituted_with=None), "ð") is None
+
+
+def test_mirror_metrics_measure_hearing_honesty():
+    from openschwa_eval.harness import (
+        MIRROR_ACCURACY_TARGET,
+        _mirror_metrics,
+    )
+
+    a, b = 1.0, 0.0  # p = sigmoid(hearing_score)
+    records = [
+        record(heard="ð", hearing=3.0, label="correct"),  # confident + right
+        record(heard="z", hearing=3.0, label="substituted", substituted_with="z"),  # right
+        record(heard="ð", hearing=3.0, label="substituted", substituted_with="z"),  # WRONG
+        record(heard="z", hearing=0.0, label="substituted", substituted_with="z"),  # refused
+        record(heard=None, hearing=None, label="correct"),  # never scored
+    ]
+    m = _mirror_metrics(records, "ð", a, b, threshold=0.85)
+    assert m["tokens"] == 5
+    assert m["scored"] == 4
+    assert m["confident"] == 3
+    assert m["correct"] == 2
+    assert m["accuracy"] == pytest.approx(2 / 3, abs=1e-4)
+    assert m["coverage"] == pytest.approx(3 / 5, abs=1e-4)
+    assert m["answer_rate"] == pytest.approx(3 / 4, abs=1e-4)
+    assert MIRROR_ACCURACY_TARGET == 0.90
+
+
+def test_deleted_tokens_make_any_hearing_claim_wrong():
+    """Nothing was produced: a confident 'I heard /ð/' on a deleted token is a
+    mishearing and must count against accuracy."""
+    from openschwa_eval.harness import _mirror_metrics
+
+    records = [record(heard="ð", hearing=3.0, label="deleted")]
+    m = _mirror_metrics(records, "ð", 1.0, 0.0, threshold=0.85)
+    assert m["confident"] == 1
+    assert m["correct"] == 0
+    assert m["accuracy"] == 0.0
+
+
+def test_mirror_threshold_sweep_is_accuracy_first():
+    """Accuracy is not negotiable; coverage is: the sweep refuses to trade a
+    wrong report for a larger answer share."""
+    from openschwa_eval.harness import _mirror_metrics, pick_mirror_threshold
+
+    a, b = 1.0, 0.0
+    records = [
+        record(heard="ð", hearing=3.0, label="correct"),  # p ~ 0.95
+        record(heard="z", hearing=3.0, label="substituted", substituted_with="z"),
+        record(heard="ð", hearing=1.2, label="substituted", substituted_with="z"),  # p ~ 0.77
+    ]
+    threshold, cal, status = pick_mirror_threshold(records, "ð", a, b)
+    assert status == "ok"
+    # The 0.77-confidence wrong report must stay below the gate.
+    assert threshold > 0.77
+    assert cal["accuracy"] == 1.0
+    # At the chosen point only the two honest reports ship.
+    assert _mirror_metrics(records, "ð", a, b, threshold)["confident"] == 2
+
+
+def test_mirror_bar_requires_accuracy_and_coverage_on_held_out():
+    from openschwa_eval.harness import _mirror_final_status
+
+    assert _mirror_final_status("ok", {"accuracy": 0.95, "coverage": 0.5}) == "ok"
+    assert _mirror_final_status("ok", {"accuracy": 0.95, "coverage": 0.2}) == "mirror-bar-not-met"
+    assert _mirror_final_status("ok", {"accuracy": 0.85, "coverage": 0.5}) == "mirror-bar-not-met"
+    assert (
+        _mirror_final_status("SHIPPING BAR NOT MET", {"accuracy": 0.95, "coverage": 0.5})
+        == "SHIPPING BAR NOT MET"
+    )
+
+
+def test_mirror_confusion_table_counts_realized_x_heard():
+    from openschwa_eval.harness import _mirror_confusion
+
+    a, b = 1.0, 0.0
+    records = [
+        record(heard="z", hearing=3.0, label="substituted", substituted_with="z"),
+        record(heard="d", hearing=3.0, label="substituted", substituted_with="z"),
+        record(heard="ð", hearing=3.0, label="correct"),
+        record(heard="ð", hearing=0.0, label="correct"),  # below gate
+    ]
+    confusion = _mirror_confusion(records, "ð", a, b, threshold=0.85)
+    assert confusion["rows"]["ð"]["ð"] == 1  # correct heard as itself
+    assert confusion["rows"]["z"]["z"] == 1  # the honest substitution
+    assert confusion["rows"]["z"]["d"] == 1  # the mishearing, shown, never hidden
+
+
+def test_mirror_only_calibration_ships_without_the_judge_block():
+    """A judge line that failed its bar must not ship its thresholds; the
+    hearing block rides alone."""
+    from openschwa_engine.config import Settings
+    from openschwa_engine.scoring.calibration import Calibration
+
+    content = build_calibration(
+        "dh-contrast-v10",
+        "ð",
+        ["z", "d", "v"],
+        None,  # judge failed
+        None,
+        None,
+        "eval/reports-mirror/test.json",
+        Settings(),
+        hearing_platt=(1.2, 0.1),
+        hearing_threshold=0.9,
+    )
+    calibration = Calibration.model_validate(content)
+    contrast = calibration.contrast("ð")
+    assert contrast is not None
+    assert contrast.substitution_platt is None
+    assert contrast.threshold is None
+    assert contrast.hearing_threshold == 0.9
+    assert contrast.hearing_probability(0.0) > 0.5

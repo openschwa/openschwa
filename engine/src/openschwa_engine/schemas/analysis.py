@@ -107,6 +107,16 @@ class ContrastResult(_Model):
         default=None, description="The confusion phone heard; set only when verdict=substituted."
     )
     confidence: float = Field(ge=0, le=1, description="Calibrated (Platt-scaled), not raw margin.")
+    #: The mirror (M1 pivot): the argmax phone over the closed set - what the
+    #: model actually heard - and its raw odds. Calibration-free evidence:
+    #: turning it into the shipped phone_hearing item needs the committed
+    #: hearing block (calibration.yaml), exactly like the verdict path.
+    heard: str | None = Field(
+        default=None, description="Argmax phone over {target} ∪ confusion_set."
+    )
+    hearing_score: float | None = Field(
+        default=None, description="log(p_heard / (1 - p_heard)), raw (uncalibrated)."
+    )
     #: Alternative score aggregations of the same frames (bake-off evidence;
     #: clients may ignore them). See scoring/contrast.py for the definitions.
     spike_score: float | None = Field(
@@ -176,7 +186,8 @@ class FeedbackItem(_Model):
     id: str
     kind: str = Field(
         description=(
-            "Open enum, grows per milestone. Current: segmental_substitution, retry. "
+            "Open enum, grows per milestone. Current: segmental_substitution, retry, "
+            "phone_hearing (the M1 mirror: what the ear heard at the focus slot). "
             "Planned: nuclear_tone_mismatch (M2), vot_out_of_range (M3)."
         )
     )

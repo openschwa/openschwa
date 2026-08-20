@@ -35,6 +35,11 @@ class ContrastScore:
     are peaky and the bake-off (docs/architecture.md) names this explicitly:
     the label-frame mean dilutes a substitution that wins only a few frames,
     while spike-frame scoring keeps exactly that evidence.
+
+    The mirror (M1 pivot, docs/research/mirror-pivot) reads the same evidence
+    as a *hearing*: `heard` is the argmax phone over the closed set and
+    `hearing_score` its odds, calibrated separately into P(heard == realized)
+    by the eval harness's hearing block.
     """
 
     target: str
@@ -44,6 +49,8 @@ class ContrastScore:
     spike_score: float  # the single frame most favouring the best confusion
     vote_fraction: float  # share of label frames where a confusion outvotes the target
     best_confusion: str  # the confusion with the most posterior mass
+    heard: str  # argmax over {target} + confusions - the phone the model heard
+    hearing_score: float  # log(p_heard / (1 - p_heard)); calibrated into P(heard == realized)
 
 
 def score_contrast(
@@ -89,6 +96,9 @@ def score_contrast(
     posteriors = {name: float(mean[i]) for i, name in enumerate(names)}
     best_confusion = max(confusions, key=lambda c: posteriors[c])
     score = float(np.log((posteriors[best_confusion] + EPS) / (posteriors[target] + EPS)))
+    heard = max(names, key=lambda name: posteriors[name])
+    p_heard = posteriors[heard]
+    hearing_score = float(np.log((p_heard + EPS) / (1.0 - p_heard + EPS)))
 
     # Spike frame: the single frame where a confusion beat the target hardest.
     # A substitution that wins only a frame or two survives here even when the
@@ -109,6 +119,8 @@ def score_contrast(
         spike_score=spike_score,
         vote_fraction=vote_fraction,
         best_confusion=best_confusion,
+        heard=heard,
+        hearing_score=hearing_score,
     )
 
 
@@ -128,8 +140,12 @@ def decide(
     inside the band uncertain; the engine refuses to guess there. One
     threshold serves every learner: the judge is blind to who is speaking. A
     variant whose evidence is absent (e.g. a GOP calibration with no GOP)
-    degrades to uncertain rather than guessing.
+    degrades to uncertain rather than guessing. A calibration without a judge
+    fit (no substitution_platt / threshold - the mirror-only case) yields
+    uncertain too: it has nothing to judge with.
     """
+    if calibration.substitution_platt is None or calibration.threshold is None:
+        return "uncertain", 0.0, None
     value = calibration.score_of(raw, gop)
     if value is None:
         return "uncertain", 0.0, None

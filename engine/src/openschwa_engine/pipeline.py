@@ -280,6 +280,8 @@ def _contrasts(
             verdict=verdict,
             detected=detected,
             confidence=round(confidence, 4),
+            heard=raw.heard,
+            hearing_score=round(raw.hearing_score, 4),
             spike_score=round(raw.spike_score, 4),
             vote_fraction=round(raw.vote_fraction, 4),
         )
@@ -334,9 +336,7 @@ def analyze_recording(
             start_s=track.start_s,
             semitones=list(track.semitones),
             median_hz=track.median_hz,
-            octave_error_rate=(
-                round(track.octave_error_frames / frames, 4) if frames else None
-            ),
+            octave_error_rate=(round(track.octave_error_frames / frames, 4) if frames else None),
         )
 
     reference = reference_track(exercise)

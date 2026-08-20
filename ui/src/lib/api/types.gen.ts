@@ -95,6 +95,14 @@ export interface ContrastResult {
    */
   confidence: number;
   /**
+   * Argmax phone over {target} ∪ confusion_set.
+   */
+  heard?: string | null;
+  /**
+   * log(p_heard / (1 - p_heard)), raw (uncalibrated).
+   */
+  hearing_score?: number | null;
+  /**
    * Log-ratio on the single frame most favouring a confusion.
    */
   spike_score?: number | null;
@@ -160,7 +168,7 @@ export interface Annotation {
 export interface FeedbackItem {
   id: string;
   /**
-   * Open enum, grows per milestone. Current: segmental_substitution, retry. Planned: nuclear_tone_mismatch (M2), vot_out_of_range (M3).
+   * Open enum, grows per milestone. Current: segmental_substitution, retry, phone_hearing (the M1 mirror: what the ear heard at the focus slot). Planned: nuclear_tone_mismatch (M2), vot_out_of_range (M3).
    */
   kind: string;
   severity: "error" | "warning" | "praise";

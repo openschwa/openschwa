@@ -136,6 +136,8 @@ def raw(score: float) -> ContrastScore:
         spike_score=score,
         vote_fraction=0.5,
         best_confusion="z",
+        heard="z",
+        hearing_score=0.0,
     )
 
 
@@ -221,7 +223,51 @@ def test_decide_uses_the_variant_the_calibration_names():
         spike_score=3.0,  # ...but the spike frame says substitution
         vote_fraction=0.0,
         best_confusion="z",
+        heard="ð",
+        hearing_score=0.0,
     )
     verdict, _, detected = decide(mixed, spike_calibration)
     assert verdict == "substituted"
     assert detected == "z"
+
+
+def test_heard_is_the_argmax_over_the_closed_set():
+    """The mirror reports the phone with the most posterior mass, whether it
+    is the target or a confusion."""
+    raw_log = log_probs_for([2, 2, 2], confidence=0.9)
+    result = score_contrast(raw_log, [0, 1, 2], "ð", ["z", "d", "v"], phone_map())
+    assert result.heard == "z"
+    raw_log = log_probs_for([1, 1, 1], confidence=0.9)
+    result = score_contrast(raw_log, [0, 1, 2], "ð", ["z", "d", "v"], phone_map())
+    assert result.heard == "ð"
+
+
+def test_hearing_score_is_heard_odds():
+    """log(p_heard / (1 - p_heard)) on the renormalized mass."""
+    raw_log = log_probs_for([2, 2, 2], confidence=0.9)
+    result = score_contrast(raw_log, [0, 1, 2], "ð", ["z", "d", "v"], phone_map())
+    p = result.posteriors["z"]
+    assert result.hearing_score == pytest.approx(np.log(p / (1.0 - p)), abs=1e-4)
+    # A near-tie sits near zero odds: the ear is maximally unsure.
+    probs = np.full((4, 6), 1e-6)
+    probs[:, 1] = 0.5
+    probs[:, 2] = 0.5
+    raw_log = np.log(probs).astype(np.float32)
+    tied = score_contrast(raw_log, np.arange(4), "ð", ["z", "d", "v"], phone_map())
+    assert tied.hearing_score == pytest.approx(0.0, abs=1e-4)
+
+
+def test_hearing_calibration_is_separate_from_substitution():
+    """The hearing fit must never borrow the judge's platt: different label
+    sets, different fits. A calibration without a hearing block reports no
+    hearing probability at all."""
+    judged = calibration()
+    assert judged.hearing_probability(1.0) is None
+    hearing = judged.model_copy(
+        update={
+            "hearing_platt": PlattCalibration(a=2.0, b=0.0),
+            "hearing_threshold": 0.9,
+        }
+    )
+    assert hearing.hearing_probability(1.0) == pytest.approx(1 / (1 + np.exp(-2.0)), abs=1e-6)
+    assert hearing.substitution_platt != hearing.hearing_platt

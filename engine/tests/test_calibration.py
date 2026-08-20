@@ -33,6 +33,22 @@ alignment:
   low_confidence: 0.55
 """
 
+#: The mirror-only shape: a calibration whose judge line never passed its bar
+#: carries no substitution fit at all - the engine must degrade that line to
+#: uncertain rather than judging with absent thresholds.
+MIRROR_VALID = """schema_version: "1.0"
+generated_by: eval/reports-mirror/m1-2026-08-20.json
+model_id: dh-contrast-v10
+contrasts:
+  - target: "ð"
+    confusions: ["z", "d", "v"]
+    hearing_platt: {a: 1.2, b: 0.1}
+    hearing_threshold: 0.9
+alignment:
+  min_confidence: 0.30
+  low_confidence: 0.55
+"""
+
 
 def test_loads_a_valid_file(tmp_path):
     path = tmp_path / "calibration.yaml"
@@ -45,6 +61,21 @@ def test_loads_a_valid_file(tmp_path):
     probability = contrast.substitution_platt.probability(0.0)
     assert probability == pytest.approx(1 / (1 + 2.71828**0.2), abs=0.02)
     assert calibration.alignment.low_confidence == 0.55
+
+
+def test_loads_a_mirror_only_file(tmp_path):
+    """A mirror-passing, judge-failing calibration carries only the hearing
+    block; the judge line reports no fit rather than borrowing one."""
+    path = tmp_path / "calibration.yaml"
+    path.write_text(MIRROR_VALID, encoding="utf-8")
+    calibration = load_calibration(path)
+    assert calibration is not None
+    contrast = calibration.contrast("ð")
+    assert contrast is not None
+    assert contrast.substitution_platt is None
+    assert contrast.threshold is None
+    assert contrast.hearing_threshold == 0.9
+    assert contrast.hearing_probability(0.0) == pytest.approx(1 / (1 + 2.71828**-0.1), abs=0.02)
 
 
 def test_missing_file_degrades_to_none(tmp_path):
@@ -137,7 +168,8 @@ def test_committed_calibration_traceable_to_passing_report():
     report = json.loads(report_path.read_text(encoding="utf-8"))
     assert report["status"] == "ok", f"report status {report['status']} is not 'ok'"
     assert report["model_id"] == calibration.model_id, "model_id mismatch"
-    assert report["tokens"]["train"] >= MIN_COMMIT_TRAIN, "report below the train-token floor"
+    # The commit guard fits on the cal pool; that is the floor that matters.
+    assert report["tokens"]["cal"] >= MIN_COMMIT_TRAIN, "report below the cal-token floor"
     # Every contrast must exist in the report and match value-for-value.
     report_targets = {report["target"]}
     yaml_targets = {contrast.target for contrast in calibration.contrasts}
@@ -145,6 +177,14 @@ def test_committed_calibration_traceable_to_passing_report():
         f"contrast set {yaml_targets} does not match the report's {report_targets}"
     )
     for contrast in calibration.contrasts:
-        assert contrast.substitution_platt.a == pytest.approx(report["platt"]["a"])
-        assert contrast.substitution_platt.b == pytest.approx(report["platt"]["b"])
-        assert contrast.threshold == pytest.approx(report["threshold"])
+        # The judge block ships only on its own passing exam; absent means
+        # the judge line failed and must not be invented here.
+        if contrast.substitution_platt is not None:
+            assert contrast.substitution_platt.a == pytest.approx(report["platt"]["a"])
+            assert contrast.substitution_platt.b == pytest.approx(report["platt"]["b"])
+            assert contrast.threshold == pytest.approx(report["threshold"])
+        # The hearing block traces to the mirror exam in the same report.
+        assert contrast.hearing_platt is not None, "committed calibration lacks a hearing fit"
+        assert contrast.hearing_platt.a == pytest.approx(report["mirror"]["platt"]["a"])
+        assert contrast.hearing_platt.b == pytest.approx(report["mirror"]["platt"]["b"])
+        assert contrast.hearing_threshold == pytest.approx(report["mirror"]["threshold"])

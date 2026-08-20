@@ -11,15 +11,18 @@ sounds of a language, not just read about them.
 
 > **Status: pre-alpha.** M0 is done — the pipeline runs end to end: record in
 > the browser, get forced-aligned phones and a pitch contour back, rendered over
-> a client-side spectrogram. **M1 is complete as a documented negative**: the
-> eval harness, closed-set contrast scoring, and the calibration pipeline all
-> shipped, and the /ð/ judge line ended where honesty demanded — a speaker-
-> disjoint re-exam proved the early fine-tuned judges' gains were partly
-> speaker leakage, and the honest ceiling (pooled AUC 0.692 / L2-ARCTIC 0.596,
-> P 0.33 at recall 0.40) is far below the ≥ 0.90-precision bar. So the engine
-> still reports measurements only — verdicts stay absent until something passes
-> the bar. **No feedback beats wrong feedback.** Full story:
-> [docs/architecture.md](docs/architecture.md) and [eval/reports/](eval/reports/).
+> a client-side spectrogram. **M1's judge line closed as a documented
+> negative** — the /ð/ judge never met the bar (honest ceiling ≈ 0.7 pooled
+> AUC after the speaker-leakage correction) and is parked as research. The
+> milestone pivoted (owner decision, 2026-08-20) to a **mirror**: the engine
+> reports what it *heard* at the focus slot — "I heard /z/ where you were
+> going for /ð/" — instead of judging the learner, gated by its own exam
+> (hearing accuracy ≥ 0.90 at coverage ≥ 0.4). The ear is examined in
+> `eval/reports-mirror/`; until it passes, the engine still reports
+> measurements only — **no feedback beats wrong feedback.** Full story:
+> [docs/architecture.md](docs/architecture.md),
+> [docs/research/mirror-pivot-2026-08.md](docs/research/mirror-pivot-2026-08.md),
+> and [eval/reports/](eval/reports/).
 
 ## 🎯 What it does (when it's done)
 
@@ -53,11 +56,14 @@ Two guides, depending on who's reading: [for coders](docs/architecture.md) ·
 
 - **M0** ✅ — walking skeleton: record → align → render phones + pitch
 - **M1** ✅ — eval harness + contrast scoring + calibration pipeline; the
-  /ð/ judge line ended as a **documented negative** (speaker-leakage
-  corrected, honest ceiling ≈ 0.69 pooled AUC, bar not met, no verdicts
-  ship) — see [eval/reports/](eval/reports/) and
-  [docs/architecture.md](docs/architecture.md); models & data research for
-  the re-attempt: [docs/research/models-and-data-post-m1.md](docs/research/models-and-data-post-m1.md)
+  /ð/ **judge** line ended as a **documented negative** (speaker-leakage
+  corrected, honest ceiling ≈ 0.7 pooled AUC, bar not met, no verdicts ship)
+  — see [eval/reports/](eval/reports/) and
+  [docs/architecture.md](docs/architecture.md). **Pivoted (2026-08-20) to the
+  mirror**: the engine reports what it heard instead of judging —
+  [docs/research/mirror-pivot-2026-08.md](docs/research/mirror-pivot-2026-08.md);
+  models & data research for the ear:
+  [docs/research/models-and-data-post-m1.md](docs/research/models-and-data-post-m1.md)
 - **M2** — intonation: nuclear-tone verdicts + DTW contour overlay, gated by
   its own bar (≥ 90% fall-vs-rise on a purpose-recorded set)
 - **M3** — annotated spectrograms (VOT, voicing)

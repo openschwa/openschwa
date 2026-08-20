@@ -4,21 +4,30 @@ Offline measurement of feedback quality. **A feedback type ships only when this
 harness proves it meets the bar.** This is project policy, not a target, and
 this file is where the bar is defined — everywhere else in the repo cites here:
 
-- precision **≥ 0.90** at recall **≥ 0.4** on held-out data (the numeric
-  targets are `PRECISION_TARGET` / `RECALL_TARGET` in
+- **the judge bar** (segmental_substitution; parked as research by the mirror
+  pivot): precision **≥ 0.90** at recall **≥ 0.4** on held-out data (the
+  numeric targets are `PRECISION_TARGET` / `RECALL_TARGET` in
   `src/openschwa_eval/harness.py`; they change only by an explicit project
   decision — decided 2026-08-20: the 0.4 recall floor is firm);
+- **the mirror bar** (phone_hearing; the shipped M1 line since the
+  2026-08-20 pivot, docs/research/mirror-pivot-2026-08.md): among confident
+  reports, **accuracy ≥ 0.90** — P(heard == realized) — at **coverage
+  ≥ 0.4** on held-out data (`MIRROR_ACCURACY_TARGET` /
+  `MIRROR_COVERAGE_TARGET` in the harness). The mirror may always refuse
+  ("couldn't tell"); refusals cost coverage, never accuracy;
 - the **per-L1 breakdown is a fairness audit** — informational, reported per
   run so accent-specific failure stays visible, but the gate is the pooled
   number;
 - a human spot-check of ~30 flagged items finds no absurd flags;
 - the operating threshold lives in a committed calibration file traceable to a
-  committed report under `reports*/`.
+  committed report under `reports*/`. Each calibration block ships only on its
+  own passing exam: `hearing_platt`/`hearing_threshold` ride the mirror's
+  pass, `substitution_platt`/`threshold` only the judge's.
 
-The threshold sweep is precision-first: among operating points holding the
-precision target, the highest recall wins. A feedback type that cannot
-clear the bar does not ship — the engine says "retry" instead, which is a
-first-class outcome rather than a failure.
+The threshold sweep is precision-first (judge) / accuracy-first (mirror):
+among operating points holding the target, the highest recall / coverage
+wins. A feedback type that cannot clear the bar does not ship — the engine
+says "retry" instead, which is a first-class outcome rather than a failure.
 
 Imports the engine as a library - no HTTP in the loop.
 
@@ -45,6 +54,13 @@ committed to the engine's scoring/calibration.yaml **only when `--commit` is
 passed AND the bar is met** (candidate runs never write it; only the winner
 re-run may); a run that misses the bar commits nothing and says so in the
 report.
+
+Since the mirror pivot the same run also produces the **mirror exam** in the
+report: heard-vs-realized accuracy, the accuracy-first coverage sweep, the
+realized×heard confusion table, the per-L1 mirror audit, and the mirror
+spot-check list. The report's top-level `status` is the mirror's; the judge
+variants follow as the research archive. The mirror bake-off evidence lives
+in eval/reports-mirror/.
 Candidates whose manifest role is 'contrast' (e.g. the Option 3 fine-tuned
 judge dh-contrast-v1) are wired through the engine's dedicated
 contrast_model_id path: the default aligner keeps aligning, the candidate

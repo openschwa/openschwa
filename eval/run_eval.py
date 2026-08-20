@@ -1,14 +1,15 @@
-"""Run the offline evaluation for one contrast. M1.
+"""Run the offline evaluation for one contrast. M1 (mirror line).
 
 Usage:
     uv run python run_eval.py --contrast "ð:z,d,v" \
         --l2arctic /path/to/l2arctic --speechocean762 /path/to/speechocean762 \
         --out reports/
 
-Procedure: see README.md. Output: PR operating point + per-L1 breakdown +
-per-corpus breakdown, written as a committed markdown + JSON report; the
-winning calibration lands in the engine's scoring/calibration.yaml when (and
-only when) the shipping bar is met.
+Procedure: see README.md. Output: the mirror exam (hearing accuracy /
+coverage, realized-x-heard confusion table, per-L1 breakdown) plus the judge
+variants as the research archive, written as a committed markdown + JSON
+report; the winning hearing calibration lands in the engine's
+scoring/calibration.yaml when (and only when) the mirror bar is met.
 """
 
 import argparse
@@ -27,18 +28,21 @@ log = logging.getLogger("openschwa-eval")
 
 
 def bakeoff_report(summaries: "list[dict[str, object]]", winner: "dict | None") -> str:
-    """The combined comparison table across candidates (docs/architecture.md §6
-    names the criteria: alignment sanity, contrast AUC, latency, size)."""
+    """The combined comparison table across candidates. The shipped line is
+    the mirror (accuracy/coverage); judge AUC is reported for the research
+    archive."""
     lines = [
-        f"# M1 bake-off - /{summaries[0]['target']}/ vs {summaries[0]['confusions']}",
+        f"# M1 mirror bake-off - /{summaries[0]['target']}/ vs {summaries[0]['confusions']}",
         "",
-        "| model | held-out P | held-out R | f1 | AUC | status | median warm ms | size GB |",
+        "| model | mirror accuracy | coverage | raw top-1 | judge AUC | status | median warm ms | size GB |",
         "|---|---|---|---|---|---|---|---|",
     ]
     for s in summaries:
+        mirror = s.get("mirror") or {}
+        m_test = mirror.get("test") or {}
         lines.append(
-            f"| {s['model_id']} | {s['test_metrics']['precision']} | "
-            f"{s['test_metrics']['recall']} | {s['test_metrics']['f1']} | "
+            f"| {s['model_id']} | {m_test.get('accuracy', '-')} | "
+            f"{m_test.get('coverage', '-')} | {m_test.get('top1_accuracy', '-')} | "
             f"{s['test_auc']} | {s['status']} | {s['latency']['median_warm_ms']} | "
             f"{s['download_bytes'] / 1e9:.2f} |"
         )
@@ -54,7 +58,11 @@ def bakeoff_report(summaries: "list[dict[str, object]]", winner: "dict | None") 
             f"| {s['model_id']} | {s['alignment']['statuses']} | "
             f"{s['alignment']['mean_ok_confidence']} |"
         )
-    lines += ["", f"**Winner: {winner['model_id'] if winner else 'none (bar not met)'}**", ""]
+    lines += [
+        "",
+        f"**Winner: {winner['model_id'] if winner else 'none (mirror bar not met)'}**",
+        "",
+    ]
     return "\n".join(lines)
 
 
@@ -167,7 +175,7 @@ def main() -> None:
             )
         else:
             winner = None
-            log.error("no candidate met the shipping bar; no calibration committed")
+            log.error("no candidate met the mirror bar; no calibration committed")
         (out_dir / f"m1-bakeoff-{stamp}-{slug}.md").write_text(
             bakeoff_report(summaries, winner), encoding="utf-8"
         )

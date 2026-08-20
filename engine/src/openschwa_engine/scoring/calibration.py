@@ -49,16 +49,29 @@ class ContrastCalibration(BaseModel):
     #: goodness-of-pronunciation). Chosen by the eval harness.
     score_variant: Literal["mean", "spike", "vote", "gop"] = "mean"
     #: Maps the raw contrast score (log(p_best_confusion / p_target)) to
-    #: P(substituted) - fitted by the eval harness on the train split.
-    substitution_platt: PlattCalibration
+    #: P(substituted) - fitted by the eval harness on the train split. Null
+    #: when the judge line never passed its bar (its thresholds must not
+    #: ship); the mirror's hearing block can ship alone.
+    substitution_platt: PlattCalibration | None = None
     #: Operating point from the precision-first PR sweep (train split only).
     #: One threshold for every learner: the judge is blind to who is speaking.
     #: The harness's per-L1 breakdown exists to *audit* that blindness (does
     #: the single line treat every language group fairly?), not to ship
-    #: per-language lines.
-    threshold: float = Field(ge=0.5, le=1.0)
+    #: per-language lines. Null together with substitution_platt.
+    threshold: float | None = Field(default=None, ge=0.5, le=1.0)
     #: Maps GOP to Phone.score in [0, 1]; null while GOP calibration is absent.
     gop_platt: PlattCalibration | None = None
+    #: The mirror (hearing) block: maps the raw hearing score
+    #: log(p_heard / (1 - p_heard)) to P(heard == realized) - the probability
+    #: that the phone the model heard is the phone the learner actually
+    #: produced. Null while no mirror exam has passed the hearing bar; the
+    #: judge's substitution_platt must NEVER be reused for hearing (different
+    #: label set, different fit).
+    hearing_platt: PlattCalibration | None = None
+    #: Operating point for the mirror: report the heard phone only when the
+    #: calibrated P(heard == realized) reaches this; below it the composer
+    #: emits the honest "couldn't tell" refusal.
+    hearing_threshold: float | None = Field(default=None, ge=0.5, le=1.0)
 
     def score_of(self, raw: ContrastScore, gop: float | None = None) -> float | None:
         """The raw value the calibration was fitted on, by variant.
@@ -73,6 +86,17 @@ class ContrastCalibration(BaseModel):
         if self.score_variant == "gop":
             return gop
         return raw.score
+
+    def hearing_probability(self, hearing_score: float) -> float | None:
+        """Calibrated P(heard == realized), or None without a hearing fit.
+
+        Takes the raw hearing score log(p_heard / (1 - p_heard)) - both the
+        pipeline (ContrastScore.hearing_score) and the schema
+        (ContrastResult.hearing_score) carry it.
+        """
+        if self.hearing_platt is None:
+            return None
+        return self.hearing_platt.probability(hearing_score)
 
 
 class AlignmentCalibration(BaseModel):

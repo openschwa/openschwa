@@ -291,7 +291,32 @@ load. First pack: `en-dh-z` (/ð/ → /z/).
   engine stays retry-only. Evidence: eval/reports-v24-honest-baseline/,
   eval/reports-v25-r1/, eval/reports-v25-r2/, eval/reports-v26-r3/.
   **Accept criterion NOT met — recorded, not waived.**
-  ("please." / "please?" / "please!"). Accept: ≥ 90% fall-vs-rise on a
+- **The mirror pivot (2026-08-20).** The owner's decision: the shipped M1
+  feedback stops being a *judge* ("your /ð/ is wrong") and becomes a
+  **mirror** — the engine reports what it heard at the focus slot
+  ("I heard /ð/" / "I heard /z/ — you were going for /ð/" / "couldn't
+  tell"), and the learner is the judge. Rationale: error labels do not exist
+  at open scale (the report's core finding), while *transcripts* do (Common
+  Voice EN ≈ 3,000 h CC0) — an ear that only needs "what phone was spoken
+  here" can be trained on connected speech, which the judge line could never
+  use. The focus phone is never guessed from speech: the drill text plus the
+  trusted alignment pin it down, and the ear only labels that interval; the
+  UI composes the whole-sentence phone view from the drill's expected phones
+  with the focus slot filled by the ear. Machinery: `ContrastScore.heard` +
+  `hearing_score`, a separate `hearing_platt`/`hearing_threshold` block in
+  calibration.yaml (P(heard == realized); the judge's fit must never be
+  reused), the `phone_hearing` feedback kind (three states, confidence-gated
+  like everything else), and the **mirror exam** in the eval harness: heard
+  vs realized-phone accuracy, coverage vs accuracy sweep, realized×heard
+  confusion table, per-L1 audit. Bar: confident-report accuracy ≥ 0.90 at
+  coverage ≥ 0.4 held-out (the judge bar's numbers re-read as mirror
+  honesty). The judge line (variants, Option 3, Stage 3) is **parked as
+  research** in eval/reports*/ and this section; it ships nothing. Decision
+  record: docs/research/mirror-pivot-2026-08.md. Evidence:
+  eval/reports-mirror/.
+- **M2 — intonation: nuclear-tone verdicts + DTW contour overlay.** In
+  progress (parallel session): ("please." / "please?" / "please!").
+  Accept: ≥ 90% fall-vs-rise on a
   purpose-recorded ~100-utterance set; octave errors < 2% of voiced frames.
   ~~Plus the packaging spike~~ — **done early**: `just package` produces a
   working unsigned onedir bundle (~590 MB, torch ~400 MB of it), engine serving
