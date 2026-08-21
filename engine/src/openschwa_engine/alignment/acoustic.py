@@ -76,6 +76,8 @@ class AcousticModel:
                 architectures = config_data.get("architectures", [])
                 if "PhoneContrastClassifier" in architectures:
                     model_type = "fusion"
+                elif "EarCTC" in architectures:
+                    model_type = "ear"
                 elif any(
                     "SequenceClassification" in a or "AudioClassification" in a
                     for a in architectures
@@ -165,6 +167,56 @@ class AcousticModel:
                     )
                 )
             self._model: Any = model
+        elif model_type == "ear":
+            from safetensors.torch import load_file
+            from torch import nn
+            from transformers import Wav2Vec2Config, Wav2Vec2Model
+
+            class _EarCTC(nn.Module):
+                """The Phase 1 ear: frozen XLS-R + linear head over the mean of
+                middle-layer hidden states (layers 12-20 - phone identity lives
+                there; the final layer is tuned for the SSL objective)."""
+
+                def __init__(self, dir_path: Path) -> None:
+                    super().__init__()
+                    config = Wav2Vec2Config.from_pretrained(str(dir_path))
+                    self.wav2vec2 = Wav2Vec2Model(config)
+                    layer_span = getattr(config, "ear_layers", None)
+                    self.layers = (
+                        (int(layer_span[0]), int(layer_span[1]))
+                        if layer_span is not None
+                        else (12, 21)
+                    )
+                    self.head = nn.Linear(config.hidden_size, config.vocab_size)
+                    self.config = config
+                    self.config.architectures = ["EarCTC"]
+
+                def forward(
+                    self,
+                    input_values: torch.Tensor,
+                    attention_mask: torch.Tensor | None = None,
+                ) -> torch.Tensor:
+                    outputs = self.wav2vec2(
+                        input_values,
+                        attention_mask=attention_mask,
+                        output_hidden_states=True,
+                    )
+                    features = torch.stack(
+                        outputs.hidden_states[self.layers[0] : self.layers[1]], dim=0
+                    ).mean(dim=0)
+                    return self.head(features)
+
+            model = _EarCTC(model_dir)
+            safetensors_file = model_dir / "model.safetensors"
+            if safetensors_file.is_file():
+                model.load_state_dict(load_file(str(safetensors_file)))
+            elif (model_dir / "pytorch_model.bin").is_file():
+                model.load_state_dict(
+                    torch.load(
+                        model_dir / "pytorch_model.bin", map_location="cpu", weights_only=False
+                    )
+                )
+            self._model: Any = model
         elif model_type == "seq":
             self._model = AutoModelForAudioClassification.from_pretrained(str(model_dir))
         else:
@@ -202,6 +254,13 @@ class AcousticModel:
                     inputs.input_values,
                     attention_mask=inputs.attention_mask,
                     features=feat_tensor,
+                )[0]
+                if logits.ndim == 1:
+                    logits = logits.unsqueeze(0)
+                log_probs = torch.log_softmax(logits.float(), dim=-1).cpu().numpy()
+            elif self._model_type == "ear":
+                logits = self._model(
+                    inputs.input_values, attention_mask=inputs.attention_mask
                 )[0]
                 if logits.ndim == 1:
                     logits = logits.unsqueeze(0)
