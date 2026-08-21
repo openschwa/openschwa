@@ -46,10 +46,14 @@ NUM_CLASSES = len(VOCAB)  # 40
 BLANK = 0
 SHARD_CLIPS = 2000
 FEATURE_DIM = 1024
-BATCH_MAX_CLIPS = 8
-# Cap a batch at ~15 s of audio: attention memory grows with B x T^2, and
-# 8 x (750 encoder frames)^2 x 16 heads x 24 layers x bf16 ~= 3.5 GB -
-# comfortably inside the 4060's 8 GB. Bigger batches thrash and slow down.
+# Batch size ONE, empirically: XLS-R's batched forward is NOT mask-isolated
+# even with a correct attention mask - the same clip's features diverge by up
+# to 0.7 in the first frames when batchmates are present (probed 2026-08-20).
+# The shipped ear hears single clips, so the training features must be
+# produced single-clip too; anything else trains a head on features the ear
+# never sees (the degenerate-decode failure). Cost: ~0.4 s/clip, ~3-4 h for
+# the full 28k - correctness over speed.
+BATCH_MAX_CLIPS = 1
 BATCH_MAX_SAMPLES = 240_000
 
 
